@@ -1,0 +1,22 @@
+# PixelDrop - Ultra HD & 4K Wallpapers / Fond d'écran 4K Gratuit
+# Robots.txt for Search Engines and SEO Crawlers
+
+User-agent: *
+Allow: /
+Allow: /?category=cyberpunk
+Allow: /?category=nature
+Allow: /?category=minimalist
+Allow: /?category=anime
+Allow: /?category=amoled
+Allow: /?category=cars
+Allow: /?category=dark
+Allow: /?category=tech
+Allow: /?category=space
+Allow: /gradient
+Allow: /privacy
+
+# Disallow internal state manipulation endpoints
+Disallow: /api/private/
+
+# Sitemap index
+Sitemap: https://pixeldrop.app/sitemap.xml

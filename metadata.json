@@ -1,0 +1,6 @@
+{
+  "name": "PixelDrop - Fond d'écran 4K Gratuit & Ultra HD Wallpapers",
+  "description": "Drop into thousands of ultra-high-res aesthetic backgrounds for Mobile, PC & Tablet. PixelDrop provides free 4K wallpapers with instant dynamic resizing and CSS gradient studio.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,2 @@
+# Google AdSense authorized digital sellers file for PixelDrop
+google.com, pub-7289045612389410, DIRECT, f08c47fec0942fa0
