@@ -1,37 +1,9 @@
 import { Wallpaper, WallpaperCategory, DownloadResolution, PexelsPhotoSrc } from '../types';
 
-// Detect Pexels API Key from Next.js (process.env) or Vite (import.meta.env) or LocalStorage
-export const getPexelsApiKey = (): string => {
-  try {
-    if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_PEXELS_API_KEY) {
-      return process.env.NEXT_PUBLIC_PEXELS_API_KEY;
-    }
-    if (typeof process !== 'undefined' && process.env?.PEXELS_API_KEY) {
-      return process.env.PEXELS_API_KEY;
-    }
-    // Vite compatibility
-    const metaEnv = (import.meta as unknown as { env?: Record<string, string> })?.env;
-    if (metaEnv?.NEXT_PUBLIC_PEXELS_API_KEY) {
-      return metaEnv.NEXT_PUBLIC_PEXELS_API_KEY;
-    }
-    if (metaEnv?.VITE_PEXELS_API_KEY) {
-      return metaEnv.VITE_PEXELS_API_KEY;
-    }
-    const stored = localStorage.getItem('wallcraft_pexels_api_key');
-    if (stored) return stored;
-  } catch {
-    // Ignore storage/env access exceptions
-  }
-  return '';
-};
-
-export const setPexelsApiKey = (key: string): void => {
-  try {
-    localStorage.setItem('wallcraft_pexels_api_key', key.trim());
-  } catch {
-    // storage fallback
-  }
-};
+// Pexels API client: Calls internal server-side proxy route (/api/wallpapers)
+// The developer PEXELS_API_KEY remains strictly secret on the server.
+export const getPexelsApiKey = (): string => '';
+export const setPexelsApiKey = (_key: string): void => {};
 
 // Raw Pexels API response interface
 export interface PexelsPhoto {
@@ -171,8 +143,9 @@ export function getPexelsResizedUrl(baseUrl: string, resolution: DownloadResolut
 }
 
 /**
- * Fetch wallpapers from Pexels API
- * Supports Curated endpoint or Search endpoint with 40 items per page
+ * Fetch wallpapers via internal secure server-side proxy (/api/wallpapers)
+ * Supports Curated endpoint or Search endpoint with 40 items per page.
+ * Keeps developer Pexels API key 100% hidden on the backend.
  */
 export async function fetchPexelsPhotos(
   page: number = 1,
@@ -180,46 +153,35 @@ export async function fetchPexelsPhotos(
   category: WallpaperCategory = 'all',
   searchQuery: string = ''
 ): Promise<{ wallpapers: Wallpaper[]; total: number; hasMore: boolean; isFallback: boolean }> {
-  const apiKey = getPexelsApiKey();
+  try {
+    const params = new URLSearchParams();
+    params.set('page', String(page));
+    params.set('per_page', String(perPage));
 
-  // If API key is available, call official Pexels API
-  if (apiKey && apiKey.trim().length > 5) {
-    try {
-      let endpoint = '';
-      if (searchQuery.trim()) {
-        endpoint = `https://api.pexels.com/v1/search?query=${encodeURIComponent(
-          searchQuery
-        )}&per_page=${perPage}&page=${page}`;
-      } else if (category !== 'all') {
-        const mappedQuery = CATEGORY_SEARCH_MAPPING[category] || category;
-        endpoint = `https://api.pexels.com/v1/search?query=${encodeURIComponent(
-          mappedQuery
-        )}&per_page=${perPage}&page=${page}`;
-      } else {
-        endpoint = `https://api.pexels.com/v1/curated?per_page=${perPage}&page=${page}`;
-      }
+    if (searchQuery.trim()) {
+      params.set('query', searchQuery.trim());
+    } else if (category !== 'all') {
+      const mappedQuery = CATEGORY_SEARCH_MAPPING[category] || category;
+      params.set('query', mappedQuery);
+    }
 
-      const res = await fetch(endpoint, {
-        headers: {
-          Authorization: apiKey.trim(),
-        },
-      });
+    // Call internal secure server-side API route
+    const res = await fetch(`/api/wallpapers?${params.toString()}`);
 
-      if (res.ok) {
-        const data: PexelsApiResponse = await res.json();
+    if (res.ok) {
+      const data: PexelsApiResponse & { fallback?: boolean } = await res.json();
+      if (data.photos && data.photos.length > 0) {
         const mapped = data.photos.map((p) => mapPexelsPhotoToWallpaper(p, category));
         return {
           wallpapers: mapped,
           total: data.total_results || 8000,
-          hasMore: Boolean(data.next_page) || (data.photos.length === perPage),
-          isFallback: false,
+          hasMore: Boolean(data.next_page) || data.photos.length === perPage,
+          isFallback: Boolean(data.fallback),
         };
-      } else {
-        console.warn(`Pexels API responded with status ${res.status}. Falling back to curated catalog.`);
       }
-    } catch (err) {
-      console.warn('Pexels API network error:', err);
     }
+  } catch (err) {
+    console.warn('Internal /api/wallpapers proxy fetch error:', err);
   }
 
   // Graceful high-volume fallback: Generates authentic 40-item pages of curated Pexels CDN wallpapers

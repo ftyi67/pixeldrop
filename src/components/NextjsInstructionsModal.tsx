@@ -22,6 +22,9 @@ export const NextjsInstructionsModal: React.FC<NextjsInstructionsModalProps> = (
 
   const projectStructure = `pixeldrop-nextjs/
 ├── app/
+│   ├── api/
+│   │   └── wallpapers/
+│   │       └── route.ts       # Secure server-side Pexels proxy (PEXELS_API_KEY)
 │   ├── layout.tsx             # Root layout with Multilingual SEO Meta & AdSense
 │   ├── page.tsx               # Home Page with PixelDrop Hero & Multi-API Aggregator
 │   ├── sitemap.ts             # MetadataRoute.Sitemap with categories
@@ -40,14 +43,14 @@ export const NextjsInstructionsModal: React.FC<NextjsInstructionsModalProps> = (
 │   └── GradientGenerator.tsx  # Canvas 4K PNG & CSS Studio
 ├── services/
 │   ├── multiApiAggregator.ts  # Promise.allSettled Pexels + Pixabay aggregator
-│   └── pexels.ts              # Pexels API client with 40-item pagination
+│   └── pexels.ts              # Pexels API client requesting internal /api/wallpapers
 ├── types/
 │   └── index.ts               # Unified Wallpaper & Category types
 ├── public/
 │   ├── ads.txt                # Google AdSense authorized sellers file
 │   ├── sitemap.xml            # Static search engine sitemap
 │   └── robots.txt             # SEO crawler directives
-├── .env.local                 # NEXT_PUBLIC_PEXELS_API_KEY & NEXT_PUBLIC_PIXABAY_API_KEY
+├── .env.local                 # PEXELS_API_KEY (Server-side developer secret)
 └── package.json`;
 
   const installCommands = `# 1. Create fresh Next.js (App Router) project
@@ -56,9 +59,8 @@ npx create-next-app@latest pixeldrop --typescript --tailwind --eslint --app
 # 2. Install required icons and animation packages
 npm install lucide-react motion
 
-# 3. Add API Keys to .env.local
-echo "NEXT_PUBLIC_PEXELS_API_KEY=your_pexels_key" >> .env.local
-echo "NEXT_PUBLIC_PIXABAY_API_KEY=your_pixabay_key" >> .env.local
+# 3. Add Server-Side API Key to .env.local (Never exposed to browser)
+echo "PEXELS_API_KEY=your_pexels_secret_key" >> .env.local
 
 # 4. Deploy instantly to Vercel
 npx vercel`;

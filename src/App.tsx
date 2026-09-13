@@ -4,10 +4,8 @@ import {
   WallpaperCategory,
   WallpaperOrientation,
 } from './types';
-import { getPexelsApiKey } from './services/pexels';
 import {
   fetchAggregatedWallpapers,
-  getPixabayApiKey,
 } from './services/multiApiAggregator';
 import { useDebounce } from './hooks/useDebounce';
 import { useSystemTheme } from './hooks/useSystemTheme';
@@ -21,7 +19,6 @@ import { AdSensePlaceholder } from './components/AdSensePlaceholder';
 import { CookieConsentBanner } from './components/CookieConsentBanner';
 import { PrivacyAdSenseModal } from './components/PrivacyAdSenseModal';
 import { NextjsInstructionsModal } from './components/NextjsInstructionsModal';
-import { PexelsKeyModal } from './components/PexelsKeyModal';
 import {
   Sparkles,
   ShieldCheck,
@@ -29,7 +26,6 @@ import {
   Heart,
   Search,
   ExternalLink,
-  Key,
   Layers,
 } from 'lucide-react';
 
@@ -59,14 +55,11 @@ export default function App() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [totalIndexed, setTotalIndexed] = useState(12000);
-  const [isPexelsActive, setIsPexelsActive] = useState(Boolean(getPexelsApiKey()));
-  const [isPixabayActive, setIsPixabayActive] = useState(Boolean(getPixabayApiKey()));
 
   // Modals state
   const [selectedWallpaper, setSelectedWallpaper] = useState<Wallpaper | null>(null);
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   const [isNextjsModalOpen, setIsNextjsModalOpen] = useState(false);
-  const [isPexelsModalOpen, setIsPexelsModalOpen] = useState(false);
 
   // Favorites state with local storage persistence
   const [favorites, setFavorites] = useState<string[]>(() => {
@@ -105,8 +98,6 @@ export default function App() {
       setPage(1);
       setHasMore(res.hasMore);
       setTotalIndexed(res.total);
-      setIsPexelsActive(Boolean(getPexelsApiKey()));
-      setIsPixabayActive(Boolean(getPixabayApiKey()));
     } catch (err) {
       console.warn('Failed to load initial aggregated wallpapers:', err);
     } finally {
@@ -205,7 +196,6 @@ export default function App() {
         favoritesCount={favorites.length}
         onOpenPrivacyModal={() => setIsPrivacyModalOpen(true)}
         onOpenNextjsModal={() => setIsNextjsModalOpen(true)}
-        onOpenPexelsModal={() => setIsPexelsModalOpen(true)}
         themePreference={themePreference}
         resolvedTheme={resolvedTheme}
         onToggleTheme={toggleTheme}
@@ -240,8 +230,6 @@ export default function App() {
                   setSearchQuery('');
                 }}
                 totalCount={totalIndexed}
-                isPexelsActive={isPexelsActive || isPixabayActive}
-                onOpenSettings={() => setIsPexelsModalOpen(true)}
               />
             )}
 
@@ -255,7 +243,6 @@ export default function App() {
               orientation={orientation}
               onChangeOrientation={setOrientation}
               totalCount={wallpapers.length}
-              isPexelsActive={isPexelsActive}
             />
 
             {/* Favorites Tab Header if active */}
@@ -423,15 +410,6 @@ export default function App() {
                 </li>
                 <li>
                   <button
-                    onClick={() => setIsPexelsModalOpen(true)}
-                    className="hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Key className="w-3 h-3 text-emerald-400" />
-                    Pexels API Key Configuration
-                  </button>
-                </li>
-                <li>
-                  <button
                     onClick={() => setIsNextjsModalOpen(true)}
                     className="hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
@@ -527,17 +505,6 @@ export default function App() {
         onToggleFavorite={toggleFavorite}
         onTagClick={handleTagClick}
         onOpenPrivacyModal={() => setIsPrivacyModalOpen(true)}
-      />
-
-      {/* Pexels API Key Configuration Modal */}
-      <PexelsKeyModal
-        isOpen={isPexelsModalOpen}
-        onClose={() => setIsPexelsModalOpen(false)}
-        onKeyUpdated={() => {
-          setIsPexelsActive(Boolean(getPexelsApiKey()));
-          setIsPixabayActive(Boolean(getPixabayApiKey()));
-          loadInitialWallpapers();
-        }}
       />
 
       {/* GDPR / CCPA Cookie Consent Banner */}

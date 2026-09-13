@@ -15,36 +15,9 @@ import {
 // 1. API Key Accessors (Pexels & Pixabay)
 // ==========================================
 
-export const getPixabayApiKey = (): string => {
-  try {
-    if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_PIXABAY_API_KEY) {
-      return process.env.NEXT_PUBLIC_PIXABAY_API_KEY;
-    }
-    if (typeof process !== 'undefined' && process.env?.PIXABAY_API_KEY) {
-      return process.env.PIXABAY_API_KEY;
-    }
-    const metaEnv = (import.meta as unknown as { env?: Record<string, string> })?.env;
-    if (metaEnv?.NEXT_PUBLIC_PIXABAY_API_KEY) {
-      return metaEnv.NEXT_PUBLIC_PIXABAY_API_KEY;
-    }
-    if (metaEnv?.VITE_PIXABAY_API_KEY) {
-      return metaEnv.VITE_PIXABAY_API_KEY;
-    }
-    const stored = localStorage.getItem('wallcraft_pixabay_api_key');
-    if (stored) return stored;
-  } catch {
-    // Ignore storage errors
-  }
-  return '';
-};
-
-export const setPixabayApiKey = (key: string): void => {
-  try {
-    localStorage.setItem('wallcraft_pixabay_api_key', key.trim());
-  } catch {
-    // Storage fallback
-  }
-};
+// Server-side credential management: End-users never configure API keys.
+export const getPixabayApiKey = (): string => '';
+export const setPixabayApiKey = (_key: string): void => {};
 
 // ==========================================
 // 2. Raw Pixabay API Type Definitions
@@ -219,7 +192,7 @@ export function normalizePixabay(
 // ==========================================
 
 /**
- * Fetch photos from Pexels API
+ * Fetch photos from Pexels API via secure server-side route (/api/wallpapers)
  */
 export async function fetchFromPexels(
   page: number,
@@ -227,37 +200,35 @@ export async function fetchFromPexels(
   category: WallpaperCategory,
   searchQuery: string
 ): Promise<Wallpaper[]> {
-  const apiKey = getPexelsApiKey();
   const query = searchQuery.trim() || CATEGORY_SEARCH_QUERIES[category] || 'wallpaper 4k';
 
-  if (!apiKey) {
-    // Generate high-resolution Pexels-modeled dataset
-    const fallbackList = generateFallbackPexelsBatch(page, perPage, category, searchQuery);
-    return fallbackList.map((wp) => ({
-      ...wp,
-      id: `pexels-${wp.id}`,
-      source: 'pexels' as const,
-      imageUrl: wp.thumbUrl,
-      authorProfile: wp.authorLink || 'https://www.pexels.com',
-    }));
+  try {
+    const params = new URLSearchParams({
+      page: String(page),
+      per_page: String(perPage),
+      query: query,
+    });
+
+    const res = await fetch(`/api/wallpapers?${params.toString()}`);
+    if (res.ok) {
+      const data: PexelsApiResponse & { fallback?: boolean } = await res.json();
+      if (data.photos && data.photos.length > 0) {
+        return (data.photos || []).map((p) => normalizePexels(p, category));
+      }
+    }
+  } catch (err) {
+    console.warn('Proxy fetch error in multiApiAggregator:', err);
   }
 
-  const endpoint = searchQuery.trim()
-    ? `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&page=${page}&per_page=${perPage}`
-    : `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&page=${page}&per_page=${perPage}`;
-
-  const res = await fetch(endpoint, {
-    headers: {
-      Authorization: apiKey,
-    },
-  });
-
-  if (!res.ok) {
-    throw new Error(`Pexels API responded with status ${res.status}`);
-  }
-
-  const data: PexelsApiResponse = await res.json();
-  return (data.photos || []).map((p) => normalizePexels(p, category));
+  // Generate high-resolution Pexels-modeled dataset fallback
+  const fallbackList = generateFallbackPexelsBatch(page, perPage, category, searchQuery);
+  return fallbackList.map((wp) => ({
+    ...wp,
+    id: `pexels-${wp.id}`,
+    source: 'pexels' as const,
+    imageUrl: wp.thumbUrl,
+    authorProfile: wp.authorLink || 'https://www.pexels.com',
+  }));
 }
 
 /**

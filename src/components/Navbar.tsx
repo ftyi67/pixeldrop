@@ -7,14 +7,11 @@ import {
   ShieldCheck,
   Code2,
   X,
-  Key,
   Droplets,
   Sun,
   Moon,
   Monitor,
 } from 'lucide-react';
-import { getPexelsApiKey } from '../services/pexels';
-import { getPixabayApiKey } from '../services/multiApiAggregator';
 import { ThemePreference, ActiveTheme } from '../hooks/useSystemTheme';
 
 interface NavbarProps {
@@ -25,7 +22,7 @@ interface NavbarProps {
   favoritesCount: number;
   onOpenPrivacyModal: () => void;
   onOpenNextjsModal: () => void;
-  onOpenPexelsModal: () => void;
+  onOpenPexelsModal?: () => void;
   themePreference?: ThemePreference;
   resolvedTheme?: ActiveTheme;
   onToggleTheme?: () => void;
@@ -40,7 +37,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   favoritesCount,
   onOpenPrivacyModal,
   onOpenNextjsModal,
-  onOpenPexelsModal,
   themePreference = 'system',
   resolvedTheme = 'dark',
   onToggleTheme,
@@ -48,9 +44,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
-  const hasPexels = Boolean(getPexelsApiKey());
-  const hasPixabay = Boolean(getPixabayApiKey());
-  const hasKeys = hasPexels || hasPixabay;
 
   return (
     <header
@@ -176,20 +169,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           <div className="w-px h-5 bg-white/[0.08] mx-0.5 hidden sm:block" />
-
-          {/* Multi-API Key Settings Trigger */}
-          <button
-            onClick={onOpenPexelsModal}
-            className={`px-2.5 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 border transition-all cursor-pointer ${
-              hasKeys
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20'
-                : 'bg-white/[0.04] border-white/10 text-zinc-400 hover:text-white hover:bg-white/[0.08]'
-            }`}
-            title="Configure Pexels & Pixabay API Keys"
-          >
-            <Key className="w-3.5 h-3.5 text-indigo-400" />
-            <span className="hidden lg:inline">{hasKeys ? 'APIs Active' : 'API Keys'}</span>
-          </button>
 
           {/* Next.js & SEO Guide */}
           <button

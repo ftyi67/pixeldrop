@@ -25,8 +25,7 @@ interface PixelDropHeroProps {
   selectedCategory: WallpaperCategory;
   onSelectCategory: (category: WallpaperCategory) => void;
   totalCount: number;
-  isPexelsActive: boolean;
-  onOpenSettings?: () => void;
+  isPexelsActive?: boolean;
 }
 
 // Category chips requested: #Cyberpunk, #Nature, #Minimalist, #Anime, #AMOLED, #Cars
@@ -87,7 +86,7 @@ export const PixelDropHero: React.FC<PixelDropHeroProps> = ({
   selectedCategory,
   onSelectCategory,
   totalCount,
-  isPexelsActive,
+  isPexelsActive = true,
 }) => {
   return (
     <section className="relative w-full pt-8 pb-10 overflow-hidden">

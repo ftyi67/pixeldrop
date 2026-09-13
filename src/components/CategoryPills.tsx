@@ -22,7 +22,7 @@ interface CategoryPillsProps {
   orientation: WallpaperOrientation;
   onChangeOrientation: (orientation: WallpaperOrientation) => void;
   totalCount: number;
-  isPexelsActive: boolean;
+  isPexelsActive?: boolean;
 }
 
 const CATEGORY_ITEMS: { id: WallpaperCategory; label: string; icon: string }[] = [
