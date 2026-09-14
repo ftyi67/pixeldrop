@@ -31,11 +31,13 @@ export interface PexelsApiResponse {
 // Category search mappings for high-relevance 4K wallpapers
 const CATEGORY_SEARCH_MAPPING: Record<WallpaperCategory, string> = {
   all: 'wallpaper 4k wallpaper background',
-  nature: 'nature landscape 4k wallpaper mountain ocean',
+  trending: 'trending 4k wallpaper popular stunning scenic',
+  anime: 'anime aesthetic scenery japan cherry blossom fantasy',
+  fantasy: 'fantasy castle dragon mythical landscape digital art',
   cyberpunk: 'cyberpunk neon city night tokyo futuristic',
+  nature: 'nature landscape 4k wallpaper mountain ocean',
   minimalist: 'minimalist architecture aesthetic interior texture',
   tech: 'technology coding computer matrix dark minimalist',
-  anime: 'anime aesthetic scenery japan cherry blossom fantasy',
   abstract: 'abstract 3d render geometric gradient dark art',
   dark: 'amoled dark minimalist black wallpaper stars',
   space: 'galaxy deep space nebula cosmos stars universe',

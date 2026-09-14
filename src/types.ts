@@ -1,10 +1,12 @@
 export type WallpaperCategory = 
   | 'all'
-  | 'nature'
+  | 'trending'
+  | 'anime'
+  | 'fantasy'
   | 'cyberpunk'
+  | 'nature'
   | 'minimalist'
   | 'tech'
-  | 'anime'
   | 'abstract'
   | 'dark'
   | 'space'
@@ -25,6 +27,20 @@ export interface PexelsPhotoSrc {
   tiny: string;
 }
 
+export interface NormalizedWallpaper {
+  id: string;
+  url: string; // High-res download link
+  thumbnail: string; // Preview image
+  source: 'pexels' | 'wallhaven';
+  title?: string;
+  authorName?: string;
+  authorProfile?: string;
+  width?: number;
+  height?: number;
+  category?: WallpaperCategory;
+  orientation?: 'landscape' | 'portrait' | 'square';
+}
+
 export interface UnifiedWallpaperItem {
   id: string;
   imageUrl: string;
@@ -32,11 +48,13 @@ export interface UnifiedWallpaperItem {
   authorProfile: string;
   width: number;
   height: number;
-  source: 'pexels' | 'pixabay';
+  source: 'pexels' | 'wallhaven' | 'pixabay';
 }
 
 export interface Wallpaper {
   id: string;
+  url?: string; // High-res download link
+  thumbnail?: string; // Preview image
   imageUrl?: string;
   authorProfile?: string;
   title: string;
@@ -50,7 +68,7 @@ export interface Wallpaper {
   height: number;
   tags: string[];
   description: string;
-  source: 'pexels' | 'pixabay' | 'unsplash' | 'curated' | 'waifupics';
+  source: 'pexels' | 'wallhaven' | 'pixabay' | 'unsplash' | 'curated' | 'waifupics';
   views: number;
   downloads: number;
   likes: number;

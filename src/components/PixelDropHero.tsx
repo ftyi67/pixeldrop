@@ -9,6 +9,8 @@ import {
   Mountain,
   Layers,
   Flame,
+  Wand2,
+  Tv,
   Moon,
   Car,
   SlidersHorizontal,
@@ -28,7 +30,7 @@ interface PixelDropHeroProps {
   isPexelsActive?: boolean;
 }
 
-// Category chips requested: #Cyberpunk, #Nature, #Minimalist, #Anime, #AMOLED, #Cars
+// Category chips requested: Trending, Anime, Fantasy, Cyberpunk, Nature, Minimalist
 const QUICK_FILTER_CHIPS: {
   id: WallpaperCategory;
   tag: string;
@@ -37,46 +39,46 @@ const QUICK_FILTER_CHIPS: {
   gradient: string;
 }[] = [
   {
+    id: 'trending',
+    tag: '#Trending',
+    label: 'Most Popular',
+    icon: <Flame className="w-3.5 h-3.5 text-rose-400" />,
+    gradient: 'from-rose-500/20 to-orange-500/20 text-rose-300 border-rose-500/30',
+  },
+  {
+    id: 'anime',
+    tag: '#Anime',
+    label: 'Wallhaven SFW',
+    icon: <Tv className="w-3.5 h-3.5 text-purple-400" />,
+    gradient: 'from-purple-500/20 to-pink-500/20 text-purple-300 border-purple-500/30',
+  },
+  {
+    id: 'fantasy',
+    tag: '#Fantasy',
+    label: 'Digital Art',
+    icon: <Wand2 className="w-3.5 h-3.5 text-indigo-400" />,
+    gradient: 'from-indigo-500/20 to-cyan-500/20 text-indigo-300 border-indigo-500/30',
+  },
+  {
     id: 'cyberpunk',
     tag: '#Cyberpunk',
-    label: 'Cyberpunk & Neon',
+    label: 'Sci-Fi Neon',
     icon: <Zap className="w-3.5 h-3.5 text-amber-400" />,
     gradient: 'from-amber-500/20 to-pink-500/20 text-amber-300 border-amber-500/30',
   },
   {
     id: 'nature',
     tag: '#Nature',
-    label: 'Nature 4K',
+    label: 'Pexels 4K',
     icon: <Mountain className="w-3.5 h-3.5 text-emerald-400" />,
     gradient: 'from-emerald-500/20 to-teal-500/20 text-emerald-300 border-emerald-500/30',
   },
   {
     id: 'minimalist',
     tag: '#Minimalist',
-    label: 'Minimalist Clean',
+    label: 'Clean Aesthetic',
     icon: <Layers className="w-3.5 h-3.5 text-zinc-300" />,
     gradient: 'from-zinc-500/20 to-slate-500/20 text-zinc-200 border-zinc-500/30',
-  },
-  {
-    id: 'anime',
-    tag: '#Anime',
-    label: 'Anime & Fantasy',
-    icon: <Flame className="w-3.5 h-3.5 text-rose-400" />,
-    gradient: 'from-rose-500/20 to-purple-500/20 text-rose-300 border-rose-500/30',
-  },
-  {
-    id: 'amoled',
-    tag: '#AMOLED',
-    label: 'Deep AMOLED',
-    icon: <Moon className="w-3.5 h-3.5 text-indigo-300" />,
-    gradient: 'from-indigo-500/20 to-violet-500/20 text-indigo-300 border-indigo-500/30',
-  },
-  {
-    id: 'cars',
-    tag: '#Cars',
-    label: 'Supercars & Racing',
-    icon: <Car className="w-3.5 h-3.5 text-cyan-400" />,
-    gradient: 'from-cyan-500/20 to-blue-500/20 text-cyan-300 border-cyan-500/30',
   },
 ];
 

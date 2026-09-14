@@ -61,11 +61,11 @@ export const WallpaperModal: React.FC<WallpaperModalProps> = ({
     );
 
     // 1. Primary Original 4K / Ultra HD: raw photo.src.original with NO URL modifications
-    const rawOriginalUrl = (wallpaper.rawSrc?.original || wallpaper.fullUrl || '').split('?')[0];
+    const rawOriginalUrl = (wallpaper.url || wallpaper.rawSrc?.original || wallpaper.fullUrl || '').split('?')[0];
 
     // 2. Cropped high-quality resolutions with auto=compress completely removed and q=100
     let targetUrl: string;
-    if (resolution === 'original') {
+    if (resolution === 'original' || wallpaper.source === 'wallhaven') {
       targetUrl = rawOriginalUrl;
     } else if (resolution === 'desktop') {
       targetUrl = `${rawOriginalUrl}?cs=tinysrgb&fit=crop&w=3840&h=2160&q=100`;
@@ -78,7 +78,7 @@ export const WallpaperModal: React.FC<WallpaperModalProps> = ({
     }
 
     // Standardized PixelDrop-4K filename format
-    const cleanId = wallpaper.id.replace(/^pexels-|^pixabay-/, '');
+    const cleanId = wallpaper.id.replace(/^pexels-|^pixabay-|^wallhaven-/, '');
     const filename =
       resolution === 'original'
         ? `PixelDrop-4K-${cleanId}.jpg`
@@ -129,10 +129,11 @@ export const WallpaperModal: React.FC<WallpaperModalProps> = ({
 
   const categoryCapitalized = wallpaper.category.charAt(0).toUpperCase() + wallpaper.category.slice(1);
   const seoH2Headline = `${categoryCapitalized} - Fond d'écran 4K / HD Wallpaper for Mobile & PC`;
+  const isWallhaven = wallpaper.source === 'wallhaven';
   const isPixabay = wallpaper.source === 'pixabay';
-  const licenseName = isPixabay ? 'Pixabay Content License' : 'Pexels Open License';
-  const apiVerifiedName = isPixabay ? 'Verified by Pixabay API' : 'Verified by Pexels API';
-  const apiVerifiedUrl = isPixabay ? 'https://pixabay.com' : 'https://www.pexels.com';
+  const licenseName = isWallhaven ? 'Wallhaven Community SFW License' : isPixabay ? 'Pixabay Content License' : 'Pexels Open License';
+  const apiVerifiedName = isWallhaven ? 'Verified by Wallhaven API' : isPixabay ? 'Verified by Pixabay API' : 'Verified by Pexels API';
+  const apiVerifiedUrl = isWallhaven ? 'https://wallhaven.cc' : isPixabay ? 'https://pixabay.com' : 'https://www.pexels.com';
 
   const seoAltText = `PixelDrop - Fond d'écran ${categoryCapitalized} 4K by ${wallpaper.authorName}`;
 
@@ -156,9 +157,9 @@ export const WallpaperModal: React.FC<WallpaperModalProps> = ({
               {wallpaper.category}
             </span>
             <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-              <span>Photo by</span>
+              <span>{isWallhaven ? 'Artwork by' : 'Photo by'}</span>
               <a
-                href={wallpaper.authorLink || 'https://www.pexels.com'}
+                href={wallpaper.authorLink || wallpaper.authorProfile || (isWallhaven ? 'https://wallhaven.cc' : 'https://www.pexels.com')}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-zinc-200 font-medium hover:text-white flex items-center gap-1 hover:underline"

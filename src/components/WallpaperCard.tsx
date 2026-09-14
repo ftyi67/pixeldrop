@@ -22,9 +22,9 @@ export const WallpaperCard: React.FC<WallpaperCardProps> = ({
   const handleQuickDownload = async (e: React.MouseEvent) => {
     e.stopPropagation();
     setQuickDownloading(true);
-    const rawId = wallpaper.id.replace(/^pexels-|^pixabay-/, '');
+    const rawId = wallpaper.id.replace(/^pexels-|^pixabay-|^wallhaven-/, '');
     const filename = `PixelDrop-4K-${rawId}.jpg`;
-    await downloadWallpaperDirect(wallpaper.fullUrl || wallpaper.imageUrl, filename, 'original');
+    await downloadWallpaperDirect(wallpaper.url || wallpaper.fullUrl || wallpaper.imageUrl, filename, 'original');
     setTimeout(() => setQuickDownloading(false), 1200);
   };
 
@@ -66,7 +66,9 @@ export const WallpaperCard: React.FC<WallpaperCardProps> = ({
             </span>
             <span
               className={`px-1.5 py-0.5 rounded-md text-[9px] font-mono uppercase font-bold border backdrop-blur-md ${
-                wallpaper.source === 'pixabay'
+                wallpaper.source === 'wallhaven'
+                  ? 'bg-purple-500/25 text-purple-300 border-purple-500/40'
+                  : wallpaper.source === 'pixabay'
                   ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
                   : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
               }`}
@@ -96,7 +98,7 @@ export const WallpaperCard: React.FC<WallpaperCardProps> = ({
               {wallpaper.title}
             </p>
             <div className="flex items-center gap-1 text-[11px] text-zinc-400 font-light truncate">
-              <span>Photo by</span>
+              <span>{wallpaper.source === 'wallhaven' ? 'Art by' : 'Photo by'}</span>
               <span className="font-medium text-zinc-200 truncate">
                 {wallpaper.authorName}
               </span>

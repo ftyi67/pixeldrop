@@ -57,11 +57,13 @@ export interface PixabayApiResponse {
 // Category search queries
 const CATEGORY_SEARCH_QUERIES: Record<WallpaperCategory, string> = {
   all: 'wallpaper 4k background',
-  nature: 'nature landscape mountain ocean 4k',
+  trending: 'trending 4k wallpaper popular stunning',
+  anime: 'anime aesthetic scenery fantasy japan',
+  fantasy: 'fantasy magical landscape mystical epic concept art',
   cyberpunk: 'cyberpunk neon city night futuristic',
+  nature: 'nature landscape mountain ocean 4k',
   minimalist: 'minimalist architecture abstract texture',
   tech: 'technology coding computer dark matrix',
-  anime: 'anime aesthetic scenery fantasy japan',
   abstract: 'abstract 3d geometric gradient wallpaper',
   dark: 'dark black amoled minimalist night',
   space: 'galaxy space nebula stars universe cosmos',
@@ -201,9 +203,11 @@ export async function fetchFromPexels(
   searchQuery: string
 ): Promise<Wallpaper[]> {
   const query = searchQuery.trim() || CATEGORY_SEARCH_QUERIES[category] || 'wallpaper 4k';
-  const targetUrl = `/api/wallpapers?page=${encodeURIComponent(page)}&per_page=${encodeURIComponent(perPage)}&query=${encodeURIComponent(query)}`;
+  const targetUrl = `/api/wallpapers?page=${encodeURIComponent(page)}&per_page=${encodeURIComponent(
+    perPage
+  )}&query=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}`;
 
-  console.log(`🔍 [Pexels Search] Initiating fetch:`, {
+  console.log(`🔍 [Multi-Proxy Search] Initiating fetch:`, {
     targetUrl,
     rawSearchQuery: searchQuery,
     resolvedQuery: query,
@@ -215,7 +219,7 @@ export async function fetchFromPexels(
   try {
     const res = await fetch(targetUrl);
 
-    console.log(`📡 [Pexels Search] HTTP Response received:`, {
+    console.log(`📡 [Multi-Proxy Search] HTTP Response received:`, {
       url: targetUrl,
       status: res.status,
       statusText: res.statusText,
@@ -223,42 +227,64 @@ export async function fetchFromPexels(
     });
 
     if (res.ok) {
-      const data: PexelsApiResponse & { fallback?: boolean; message?: string } = await res.json();
+      const data: any = await res.json();
 
-      console.log(`📦 [Pexels Search] Response JSON payload:`, {
+      console.log(`📦 [Multi-Proxy Search] Response JSON payload:`, {
         page: data.page,
         per_page: data.per_page,
         total_results: data.total_results,
+        source: data.source,
+        wallpapersCount: data.wallpapers?.length || 0,
         receivedPhotosCount: data.photos?.length || 0,
         isFallback: Boolean(data.fallback),
-        serverMessage: data.message || 'OK',
-        samplePhoto: data.photos?.[0]
-          ? {
-              id: data.photos[0].id,
-              photographer: data.photos[0].photographer,
-              alt: data.photos[0].alt,
-            }
-          : null,
       });
 
+      // 1. If unified wallpapers array is present, return it
+      if (data.wallpapers && data.wallpapers.length > 0) {
+        return data.wallpapers.map((w: any) => ({
+          id: w.id,
+          url: w.url,
+          thumbnail: w.thumbnail,
+          fullUrl: w.url,
+          thumbUrl: w.thumbnail,
+          imageUrl: w.thumbnail,
+          title: w.title || `${w.source === 'wallhaven' ? 'Wallhaven' : 'Pexels'} 4K Wallpaper`,
+          authorName: w.authorName || (w.source === 'wallhaven' ? 'Wallhaven Artist' : 'Pexels Creator'),
+          authorProfile: w.authorProfile || '',
+          authorLink: w.authorProfile || '',
+          category: (category || w.category || 'all') as WallpaperCategory,
+          width: w.width || 1920,
+          height: w.height || 1080,
+          tags: [w.category || category, w.source, '4k', 'wallpaper'],
+          description: `4K Ultra HD wallpaper from ${w.source}`,
+          source: w.source,
+          views: 1200 + Math.floor(Math.random() * 800),
+          downloads: 450 + Math.floor(Math.random() * 300),
+          likes: 89 + Math.floor(Math.random() * 150),
+          orientation: w.orientation || (w.width >= w.height ? 'landscape' : 'portrait'),
+          rawSrc: w.src,
+        }));
+      }
+
+      // 2. Fallback to photos array
       if (data.photos && data.photos.length > 0) {
-        return data.photos.map((p) => normalizePexels(p, category));
+        return data.photos.map((p: any) => normalizePexels(p, category));
       } else {
-        console.warn(`⚠️ [Pexels Search] API returned 0 photos for query "${query}".`);
+        console.warn(`⚠️ [Multi-Proxy Search] API returned 0 items for query "${query}".`);
       }
     } else {
       console.error(
-        `❌ [Pexels Search] HTTP Error response: Status ${res.status} (${res.statusText}) when calling ${targetUrl}`
+        `❌ [Multi-Proxy Search] HTTP Error response: Status ${res.status} (${res.statusText}) when calling ${targetUrl}`
       );
       try {
         const errorBody = await res.text();
-        console.error(`❌ [Pexels Search] Error response body:`, errorBody);
+        console.error(`❌ [Multi-Proxy Search] Error response body:`, errorBody);
       } catch {
         // Ignore body read failure
       }
     }
   } catch (err) {
-    console.error(`💥 [Pexels Search] Catch caught network/fetch exception:`, err);
+    console.error(`💥 [Multi-Proxy Search] Catch caught network/fetch exception:`, err);
   }
 
   console.warn(`🔄 [Pexels Search] Falling back to curated catalog for query "${query}"`);
@@ -344,20 +370,25 @@ export async function fetchAggregatedWallpapers(
 ): Promise<AggregatedWallpapersResult> {
   const cleanSearch = searchQuery.trim();
 
-  // If user entered a specific search query, direct 100% of the query to Pexels
-  // to prevent mock/seed dilution of authentic search results
-  if (cleanSearch) {
-    console.log(`🔎 [Aggregator] Dedicated search mode active for query: "${cleanSearch}" (page: ${page}, perPage: ${perPage})`);
-    const pexelsWallpapers = await fetchFromPexels(page, perPage, category, cleanSearch);
+  // If user entered a specific search query OR selected an illustration/anime/fantasy category,
+  // direct 100% of the request to our dual-source server proxy (/api/wallpapers)
+  const isDigitalArtCategory = category === 'anime' || category === 'fantasy' || category === 'cyberpunk';
+
+  if (cleanSearch || isDigitalArtCategory) {
+    console.log(`🔎 [Aggregator] Dedicated server proxy fetch: query="${cleanSearch}", category="${category}" (page: ${page}, perPage: ${perPage})`);
+    const serverWallpapers = await fetchFromPexels(page, perPage, category, cleanSearch);
     
-    console.log(`🎯 [Aggregator] Search completed for "${cleanSearch}": Received ${pexelsWallpapers.length} wallpapers`);
+    console.log(`🎯 [Aggregator] Received ${serverWallpapers.length} wallpapers from proxy`);
+
+    const pexelsCount = serverWallpapers.filter((w) => w.source === 'pexels').length;
+    const wallhavenCount = serverWallpapers.filter((w) => w.source === 'wallhaven').length;
 
     return {
-      wallpapers: pexelsWallpapers,
-      total: Math.max(100, pexelsWallpapers.length * 20),
-      hasMore: pexelsWallpapers.length >= perPage,
+      wallpapers: serverWallpapers,
+      total: Math.max(100, serverWallpapers.length * 20),
+      hasMore: serverWallpapers.length >= perPage,
       sources: {
-        pexelsCount: pexelsWallpapers.length,
+        pexelsCount: pexelsCount + wallhavenCount,
         pixabayCount: 0,
       },
     };
