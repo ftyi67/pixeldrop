@@ -22,7 +22,7 @@ export const WallpaperCard: React.FC<WallpaperCardProps> = ({
   const handleQuickDownload = async (e: React.MouseEvent) => {
     e.stopPropagation();
     setQuickDownloading(true);
-    const rawId = wallpaper.id.replace(/^pexels-|^pixabay-|^wallhaven-/, '');
+    const rawId = wallpaper.id.replace(/^pexels-|^pixabay-|^wallhaven-|^unsplash-/, '');
     const filename = `PixelDrop-4K-${rawId}.jpg`;
     await downloadWallpaperDirect(wallpaper.url || wallpaper.fullUrl || wallpaper.imageUrl, filename, 'original');
     setTimeout(() => setQuickDownloading(false), 1200);
@@ -68,6 +68,8 @@ export const WallpaperCard: React.FC<WallpaperCardProps> = ({
               className={`px-1.5 py-0.5 rounded-md text-[9px] font-mono uppercase font-bold border backdrop-blur-md ${
                 wallpaper.source === 'wallhaven'
                   ? 'bg-purple-500/25 text-purple-300 border-purple-500/40'
+                  : wallpaper.source === 'unsplash'
+                  ? 'bg-amber-500/25 text-amber-300 border-amber-500/40'
                   : wallpaper.source === 'pixabay'
                   ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
                   : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'

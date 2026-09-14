@@ -31,7 +31,8 @@ export interface NormalizedWallpaper {
   id: string;
   url: string; // High-res download link
   thumbnail: string; // Preview image
-  source: 'pexels' | 'wallhaven';
+  source: 'pexels' | 'wallhaven' | 'unsplash' | 'pixabay';
+  photographer?: string;
   title?: string;
   authorName?: string;
   authorProfile?: string;
@@ -48,7 +49,7 @@ export interface UnifiedWallpaperItem {
   authorProfile: string;
   width: number;
   height: number;
-  source: 'pexels' | 'wallhaven' | 'pixabay';
+  source: 'pexels' | 'wallhaven' | 'unsplash' | 'pixabay';
 }
 
 export interface Wallpaper {

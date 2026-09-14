@@ -9,217 +9,368 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  // 1. Secure Server-Side Pexels API Proxy
-  // API key is strictly read from process.env.PEXELS_API_KEY on the server
+  // 1. Secure Server-Side 4-Source Multi-Aggregator Proxy
+  // Supports Pexels, Wallhaven, Unsplash, and Pixabay
   app.get('/api/wallpapers', async (req, res) => {
     try {
-      const query = (req.query.query as string)?.trim() || '';
+      const rawQuery = (req.query.query as string)?.trim() || '';
       const category = (req.query.category as string)?.trim() || '';
-      const page = req.query.page || '1';
-      const perPage = req.query.per_page || req.query.perPage || '40';
+      const page = Math.max(1, parseInt((req.query.page as string) || '1', 10));
+      const perPage = Math.min(
+        80,
+        Math.max(10, parseInt((req.query.per_page as string) || (req.query.perPage as string) || '40', 10))
+      );
+
+      const qLower = rawQuery.toLowerCase();
+      const cLower = category.toLowerCase();
+      const text = `${qLower} ${cLower}`;
 
       const wallhavenKeywords = [
-        'anime',
-        'fantasy',
-        'cyberpunk',
-        'digital art',
-        'illustration',
-        'manga',
-        'comic',
-        'art',
-        'scifi',
-        'sci-fi',
-        'synthwave',
-        'gaming',
-        'game',
-        'waifu',
-        'genshin',
-        'concept art',
-        'pixel art',
+        'anime', 'fantasy', 'cyberpunk', 'digital art', 'manga', 'comic',
+        'scifi', 'sci-fi', 'synthwave', 'gaming', 'game', 'waifu',
+        'genshin', 'concept art', 'pixel art', 'futuristic', 'mecha'
       ];
-
-      const qLower = query.toLowerCase();
-      const cLower = category.toLowerCase();
       const isWallhaven =
         cLower === 'anime' ||
         cLower === 'fantasy' ||
         cLower === 'cyberpunk' ||
-        wallhavenKeywords.some((kw) => qLower.includes(kw) || cLower.includes(kw));
+        wallhavenKeywords.some((kw) => text.includes(kw));
 
-      // 1. Wallhaven Branch
-      if (isWallhaven) {
-        const wallhavenQuery = query || category || 'anime';
-        const wallhavenApiKey = process.env.WALLHAVEN_API_KEY?.trim() || '';
-        const apiKeyParam = wallhavenApiKey ? `apikey=${encodeURIComponent(wallhavenApiKey)}&` : '';
-        const wallhavenUrl = `https://wallhaven.cc/api/v1/search?${apiKeyParam}q=${encodeURIComponent(
-          wallhavenQuery
-        )}&purity=100&sorting=random&page=${encodeURIComponent(page as string)}`;
+      const illustrationKeywords = [
+        'illustration', 'illustrations', 'vector', 'vectors', 'cartoon',
+        'drawing', 'drawings', 'clipart', 'graphic', 'sketch', 'doodle', 'pattern'
+      ];
+      const isPixabayIllustration = illustrationKeywords.some((kw) => text.includes(kw));
 
-        console.log(`[Express /api/wallpapers] Routing to Wallhaven: ${wallhavenUrl}`);
+      const aestheticKeywords = [
+        'aesthetic', 'minimalist', 'minimal', 'architecture', 'lifestyle',
+        'interior', 'coffee', 'cozy', 'travel', 'street', 'portrait', 'plants', 'nature'
+      ];
+      const isAesthetic =
+        cLower === 'minimalist' ||
+        cLower === 'nature' ||
+        aestheticKeywords.some((kw) => text.includes(kw));
 
-        try {
-          const upstream = await fetch(wallhavenUrl, {
-            headers: {
-              'User-Agent': 'PixelDrop-WallpaperApp/2.0',
-              Accept: 'application/json',
-            },
-          });
-
-          if (upstream.ok) {
-            const data: any = await upstream.json();
-            const items = data.data || [];
-
-            const normalizedWallpapers = items.map((item: any) => {
-              const width = Number(item.dimension_x) || 1920;
-              const height = Number(item.dimension_y) || 1080;
-              const orientation = width > height ? 'landscape' : width < height ? 'portrait' : 'square';
-              const highResUrl = item.path || item.url || '';
-              const thumbUrl = item.thumbs?.large || item.thumbs?.small || highResUrl;
-
-              return {
-                id: `wallhaven-${item.id}`,
-                url: highResUrl,
-                thumbnail: thumbUrl,
-                source: 'wallhaven' as const,
-                title: `${String(wallhavenQuery).charAt(0).toUpperCase() + String(wallhavenQuery).slice(1)} Illustration 4K`,
-                authorName: 'Wallhaven Artist',
-                authorProfile: item.url || 'https://wallhaven.cc',
-                width,
-                height,
-                category: category || item.category || 'anime',
-                orientation,
-                src: {
-                  original: highResUrl,
-                  large2x: highResUrl,
-                  large: thumbUrl,
-                  medium: thumbUrl,
-                  small: item.thumbs?.small || thumbUrl,
-                  portrait: thumbUrl,
-                  landscape: highResUrl,
-                  tiny: item.thumbs?.small || thumbUrl,
-                },
-              };
-            });
-
-            const legacyPhotos = normalizedWallpapers.map((w: any) => ({
-              id: w.id,
-              url: w.url,
-              photographer: w.authorName,
-              photographer_url: w.authorProfile || '',
-              photographer_id: 0,
-              width: w.width,
-              height: w.height,
-              src: w.src,
-              alt: w.title,
-            }));
-
-            res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
-            return res.json({
-              page: Number(page),
-              per_page: Number(perPage),
-              total_results: data.meta?.total || normalizedWallpapers.length,
-              source: 'wallhaven',
-              wallpapers: normalizedWallpapers,
-              photos: legacyPhotos,
-            });
+      // Shuffler utility
+      const interleaveAndShuffle = (arrays: any[][]) => {
+        const valid = arrays.filter((arr) => arr && arr.length > 0);
+        if (valid.length === 0) return [];
+        if (valid.length === 1) return valid[0];
+        const resList: any[] = [];
+        const maxLen = Math.max(...valid.map((a) => a.length));
+        for (let i = 0; i < maxLen; i++) {
+          for (const arr of valid) {
+            if (i < arr.length) resList.push(arr[i]);
           }
-        } catch (whErr) {
-          console.error('[Express /api/wallpapers] Wallhaven error, falling back to Pexels:', whErr);
         }
+        for (let i = resList.length - 1; i > 0; i--) {
+          const j = Math.max(0, i - Math.floor(Math.random() * 3));
+          const t = resList[i];
+          resList[i] = resList[j];
+          resList[j] = t;
+        }
+        return resList;
+      };
+
+      // 1. Wallhaven fetcher
+      const fetchWallhaven = async (q: string, p: number, count: number) => {
+        try {
+          const wQuery = q || category || 'anime';
+          const whKey = process.env.WALLHAVEN_API_KEY?.trim() || '';
+          const keyParam = whKey ? `apikey=${encodeURIComponent(whKey)}&` : '';
+          const url = `https://wallhaven.cc/api/v1/search?${keyParam}q=${encodeURIComponent(
+            wQuery
+          )}&purity=100&sorting=random&page=${p}`;
+          const resp = await fetch(url, {
+            headers: { 'User-Agent': 'PixelDrop-WallpaperApp/3.0', Accept: 'application/json' },
+          });
+          if (!resp.ok) return [];
+          const data: any = await resp.json();
+          const items = data.data || [];
+          return items.slice(0, count).map((item: any) => {
+            const width = Number(item.dimension_x) || 1920;
+            const height = Number(item.dimension_y) || 1080;
+            const orientation = width > height ? 'landscape' : width < height ? 'portrait' : 'square';
+            const highResUrl = item.path || item.url || '';
+            const thumbUrl = item.thumbs?.large || item.thumbs?.small || highResUrl;
+            return {
+              id: `wallhaven-${item.id}`,
+              url: highResUrl,
+              thumbnail: thumbUrl,
+              source: 'wallhaven',
+              photographer: 'Wallhaven Artist',
+              width,
+              height,
+              title: `${wQuery.charAt(0).toUpperCase() + wQuery.slice(1)} Illustration 4K`,
+              authorName: 'Wallhaven Artist',
+              authorProfile: item.url || 'https://wallhaven.cc',
+              category: category || item.category || 'anime',
+              orientation,
+              src: {
+                original: highResUrl,
+                large2x: highResUrl,
+                large: thumbUrl,
+                medium: thumbUrl,
+                small: item.thumbs?.small || thumbUrl,
+                portrait: thumbUrl,
+                landscape: highResUrl,
+                tiny: item.thumbs?.small || thumbUrl,
+              },
+            };
+          });
+        } catch (e) {
+          console.error('[Express] Wallhaven error:', e);
+          return [];
+        }
+      };
+
+      // 2. Pixabay fetcher
+      const fetchPixabay = async (q: string, p: number, count: number, isIllus = false) => {
+        try {
+          const pbKey = process.env.PIXABAY_API_KEY?.trim();
+          if (!pbKey) return [];
+          const pbQuery = q || category || 'wallpaper';
+          const imgType = isIllus ? 'illustration' : 'all';
+          const limit = Math.min(Math.max(count, 3), 50);
+          const url = `https://pixabay.com/api/?key=${encodeURIComponent(
+            pbKey
+          )}&q=${encodeURIComponent(pbQuery)}&image_type=${imgType}&safesearch=true&page=${p}&per_page=${limit}`;
+          const resp = await fetch(url);
+          if (!resp.ok) return [];
+          const data: any = await resp.json();
+          return (data.hits || []).map((hit: any) => {
+            const width = Number(hit.imageWidth) || 1920;
+            const height = Number(hit.imageHeight) || 1080;
+            const orientation = width > height ? 'landscape' : width < height ? 'portrait' : 'square';
+            const highResUrl = hit.largeImageURL || hit.imageURL || hit.webformatURL || '';
+            const thumbUrl = hit.webformatURL || hit.previewURL || highResUrl;
+            const photographer = hit.user || 'Pixabay Creator';
+            return {
+              id: `pixabay-${hit.id}`,
+              url: highResUrl,
+              thumbnail: thumbUrl,
+              source: 'pixabay',
+              photographer,
+              width,
+              height,
+              title: `${(hit.tags?.split(',')[0] || pbQuery).trim()} 4K Wallpaper`,
+              authorName: photographer,
+              authorProfile: hit.user_id ? `https://pixabay.com/users/${hit.user}-${hit.user_id}/` : 'https://pixabay.com',
+              category: category || (isIllus ? 'illustration' : 'all'),
+              orientation,
+              src: {
+                original: highResUrl,
+                large2x: highResUrl,
+                large: thumbUrl,
+                medium: thumbUrl,
+                small: hit.previewURL || thumbUrl,
+                portrait: thumbUrl,
+                landscape: highResUrl,
+                tiny: hit.previewURL || thumbUrl,
+              },
+            };
+          });
+        } catch (e) {
+          console.error('[Express] Pixabay error:', e);
+          return [];
+        }
+      };
+
+      // 3. Unsplash fetcher
+      const fetchUnsplash = async (q: string, p: number, count: number) => {
+        try {
+          const unsKey = process.env.UNSPLASH_ACCESS_KEY?.trim();
+          if (!unsKey) return [];
+          const uQuery = q || (category && category !== 'all' ? category : '');
+          const url = uQuery
+            ? `https://api.unsplash.com/search/photos?client_id=${encodeURIComponent(
+                unsKey
+              )}&query=${encodeURIComponent(uQuery)}&page=${p}&per_page=${count}&orientation=landscape`
+            : `https://api.unsplash.com/photos?client_id=${encodeURIComponent(
+                unsKey
+              )}&page=${p}&per_page=${count}&order_by=popular`;
+          const resp = await fetch(url, { headers: { 'Accept-Version': 'v1' } });
+          if (!resp.ok) return [];
+          const data: any = await resp.json();
+          const items = Array.isArray(data) ? data : data.results || [];
+          return items.map((item: any) => {
+            const width = Number(item.width) || 1920;
+            const height = Number(item.height) || 1080;
+            const orientation = width > height ? 'landscape' : width < height ? 'portrait' : 'square';
+            const highResUrl = item.urls?.raw || item.urls?.full || item.urls?.regular || '';
+            const thumbUrl = item.urls?.regular || item.urls?.small || item.urls?.thumb || highResUrl;
+            const photographer = item.user?.name || item.user?.username || 'Unsplash Creator';
+            return {
+              id: `unsplash-${item.id}`,
+              url: highResUrl,
+              thumbnail: thumbUrl,
+              source: 'unsplash',
+              photographer,
+              width,
+              height,
+              title: item.alt_description || item.description || `${uQuery || 'Aesthetic'} 4K Wallpaper`,
+              authorName: photographer,
+              authorProfile: item.user?.links?.html || 'https://unsplash.com',
+              category: category || 'minimalist',
+              orientation,
+              src: {
+                original: highResUrl,
+                large2x: item.urls?.full || highResUrl,
+                large: thumbUrl,
+                medium: item.urls?.small || thumbUrl,
+                small: item.urls?.small || thumbUrl,
+                portrait: thumbUrl,
+                landscape: highResUrl,
+                tiny: item.urls?.thumb || thumbUrl,
+              },
+            };
+          });
+        } catch (e) {
+          console.error('[Express] Unsplash error:', e);
+          return [];
+        }
+      };
+
+      // 4. Pexels fetcher
+      const fetchPexels = async (q: string, p: number, count: number) => {
+        try {
+          const pxKey = process.env.PEXELS_API_KEY?.trim();
+          if (!pxKey) return [];
+          const pxQuery = q || (category && category !== 'all' ? category : '');
+          const url = pxQuery
+            ? `https://api.pexels.com/v1/search?query=${encodeURIComponent(pxQuery)}&page=${p}&per_page=${count}`
+            : `https://api.pexels.com/v1/curated?page=${p}&per_page=${count}`;
+          const resp = await fetch(url, { headers: { Authorization: pxKey } });
+          if (!resp.ok) return [];
+          const data: any = await resp.json();
+          return (data.photos || []).map((photo: any) => {
+            const width = Number(photo.width) || 1920;
+            const height = Number(photo.height) || 1080;
+            const orientation = width > height ? 'landscape' : width < height ? 'portrait' : 'square';
+            const highResUrl = photo.src?.original || photo.src?.large2x || photo.url || '';
+            const thumbUrl = photo.src?.large || photo.src?.medium || highResUrl;
+            const photographer = photo.photographer || 'Pexels Creator';
+            return {
+              id: `pexels-${photo.id}`,
+              url: highResUrl,
+              thumbnail: thumbUrl,
+              source: 'pexels',
+              photographer,
+              width,
+              height,
+              title: photo.alt || `${pxQuery || 'Curated'} 4K Wallpaper`,
+              authorName: photographer,
+              authorProfile: photo.photographer_url || 'https://www.pexels.com',
+              category: category || 'all',
+              orientation,
+              src: {
+                original: highResUrl,
+                large2x: photo.src?.large2x || highResUrl,
+                large: thumbUrl,
+                medium: photo.src?.medium || thumbUrl,
+                small: photo.src?.small || thumbUrl,
+                portrait: photo.src?.portrait || thumbUrl,
+                landscape: photo.src?.landscape || highResUrl,
+                tiny: photo.src?.tiny || thumbUrl,
+              },
+            };
+          });
+        } catch (e) {
+          console.error('[Express] Pexels error:', e);
+          return [];
+        }
+      };
+
+      let wallpapers: any[] = [];
+      const sourcesUsed: string[] = [];
+
+      if (isWallhaven) {
+        const [wh, pb] = await Promise.all([
+          fetchWallhaven(rawQuery, page, perPage),
+          fetchPixabay(rawQuery, page, Math.floor(perPage / 2), true),
+        ]);
+        if (wh.length > 0) sourcesUsed.push('wallhaven');
+        if (pb.length > 0) sourcesUsed.push('pixabay');
+        wallpapers = interleaveAndShuffle([wh, pb]);
+        if (wallpapers.length === 0) {
+          const px = await fetchPexels(rawQuery, page, perPage);
+          if (px.length > 0) {
+            sourcesUsed.push('pexels');
+            wallpapers = px;
+          }
+        }
+      } else if (isPixabayIllustration) {
+        const [pb, wh] = await Promise.all([
+          fetchPixabay(rawQuery, page, perPage, true),
+          fetchWallhaven(rawQuery, page, Math.floor(perPage / 2)),
+        ]);
+        if (pb.length > 0) sourcesUsed.push('pixabay');
+        if (wh.length > 0) sourcesUsed.push('wallhaven');
+        wallpapers = interleaveAndShuffle([pb, wh]);
+        if (wallpapers.length === 0) {
+          const px = await fetchPexels(rawQuery, page, perPage);
+          if (px.length > 0) {
+            sourcesUsed.push('pexels');
+            wallpapers = px;
+          }
+        }
+      } else if (isAesthetic) {
+        const half = Math.ceil(perPage / 2);
+        const [uns, px] = await Promise.all([
+          fetchUnsplash(rawQuery, page, half),
+          fetchPexels(rawQuery, page, half),
+        ]);
+        if (uns.length > 0) sourcesUsed.push('unsplash');
+        if (px.length > 0) sourcesUsed.push('pexels');
+        wallpapers = interleaveAndShuffle([uns, px]);
+        if (wallpapers.length === 0) {
+          const pb = await fetchPixabay(rawQuery, page, perPage, false);
+          if (pb.length > 0) {
+            sourcesUsed.push('pixabay');
+            wallpapers = pb;
+          }
+        }
+      } else {
+        const quarter = Math.ceil(perPage / 2);
+        const [px, uns, pb, wh] = await Promise.all([
+          fetchPexels(rawQuery, page, quarter),
+          fetchUnsplash(rawQuery, page, quarter),
+          fetchPixabay(rawQuery, page, quarter, false),
+          fetchWallhaven(rawQuery, page, quarter),
+        ]);
+        if (px.length > 0) sourcesUsed.push('pexels');
+        if (uns.length > 0) sourcesUsed.push('unsplash');
+        if (pb.length > 0) sourcesUsed.push('pixabay');
+        if (wh.length > 0) sourcesUsed.push('wallhaven');
+        wallpapers = interleaveAndShuffle([px, uns, pb, wh]);
       }
 
-      // 2. Pexels Branch
-      const apiKey = process.env.PEXELS_API_KEY;
+      const legacyPhotos = wallpapers.map((w: any) => ({
+        id: w.id,
+        url: w.url,
+        photographer: w.photographer,
+        photographer_url: w.authorProfile || '',
+        photographer_id: 0,
+        width: w.width,
+        height: w.height,
+        src: w.src,
+        alt: w.title,
+      }));
 
-      console.log(`[Express /api/wallpapers] Query: "${query}", Page: ${page}, PerPage: ${perPage}, HasKey: ${Boolean(apiKey)}`);
-
-      if (!apiKey) {
-        console.warn('[Express /api/wallpapers] No PEXELS_API_KEY found, returning fallback response');
-        return res.status(200).json({
-          page: Number(page),
-          per_page: Number(perPage),
-          photos: [],
-          wallpapers: [],
-          total_results: 0,
-          fallback: true,
-          source: 'pexels',
-          message: 'PEXELS_API_KEY not configured on server',
-        });
-      }
-
-      const pexelsQuery = query || (category && category !== 'all' ? category : '');
-      const endpoint = pexelsQuery
-        ? `https://api.pexels.com/v1/search?query=${encodeURIComponent(pexelsQuery)}&page=${page}&per_page=${perPage}`
-        : `https://api.pexels.com/v1/curated?page=${page}&per_page=${perPage}`;
-
-      console.log(`[Express /api/wallpapers] Calling upstream: ${endpoint}`);
-
-      const upstream = await fetch(endpoint, {
-        headers: {
-          Authorization: apiKey.trim(),
-        },
-      });
-
-      if (!upstream.ok) {
-        console.error(`[Express /api/wallpapers] Upstream error: ${upstream.status} ${upstream.statusText}`);
-        return res.status(upstream.status).json({
-          status: upstream.status,
-          photos: [],
-          wallpapers: [],
-          total_results: 0,
-          fallback: true,
-        });
-      }
-
-      const data: any = await upstream.json();
-      const photos = data.photos || [];
-
-      const normalizedWallpapers = photos.map((photo: any) => {
-        const width = Number(photo.width) || 1920;
-        const height = Number(photo.height) || 1080;
-        const orientation = width > height ? 'landscape' : width < height ? 'portrait' : 'square';
-        const highResUrl = photo.src?.original || photo.src?.large2x || photo.url || '';
-        const thumbUrl = photo.src?.large || photo.src?.medium || highResUrl;
-
-        return {
-          id: `pexels-${photo.id}`,
-          url: highResUrl,
-          thumbnail: thumbUrl,
-          source: 'pexels' as const,
-          title: String(photo.alt || `${pexelsQuery || 'Curated'} 4K Wallpaper`).trim(),
-          authorName: String(photo.photographer || 'Pexels Creator'),
-          authorProfile: String(photo.photographer_url || ''),
-          width,
-          height,
-          category: category || 'all',
-          orientation,
-          src: {
-            original: highResUrl,
-            large2x: photo.src?.large2x || highResUrl,
-            large: thumbUrl,
-            medium: photo.src?.medium || thumbUrl,
-            small: photo.src?.small || thumbUrl,
-            portrait: photo.src?.portrait || thumbUrl,
-            landscape: photo.src?.landscape || highResUrl,
-            tiny: photo.src?.tiny || thumbUrl,
-          },
-        };
-      });
-
-      console.log(`[Express /api/wallpapers] Upstream returned ${photos.length} photos`);
       res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
       return res.json({
-        page: Number(page),
-        per_page: Number(perPage),
-        total_results: data.total_results || normalizedWallpapers.length,
-        source: 'pexels',
-        wallpapers: normalizedWallpapers,
-        photos: photos,
+        page,
+        per_page: perPage,
+        total_results: Math.max(wallpapers.length * 25, 250),
+        source: sourcesUsed.length === 1 ? sourcesUsed[0] : sourcesUsed.length > 1 ? 'multi' : 'fallback',
+        sources_used: sourcesUsed,
+        wallpapers,
+        photos: legacyPhotos,
       });
     } catch (err) {
       console.error('Express proxy error for /api/wallpapers:', err);
       return res.status(500).json({
-        error: 'Server error proxying wallpapers API',
+        error: 'Server error proxying wallpapers multi-aggregator API',
         photos: [],
         wallpapers: [],
         total_results: 0,
@@ -227,6 +378,7 @@ async function startServer() {
       });
     }
   });
+
 
   // Health check endpoint
   app.get('/api/health', (req, res) => {
