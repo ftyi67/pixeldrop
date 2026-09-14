@@ -92,14 +92,24 @@ export default function App() {
   // Initial and Category/Search load using Multi-API Aggregator (Promise.allSettled)
   const loadInitialWallpapers = useCallback(async () => {
     setIsLoadingMore(true);
+    console.log('🔄 [App.tsx] loadInitialWallpapers started:', {
+      category: selectedCategory,
+      debouncedSearchQuery: debouncedSearch,
+    });
     try {
       const res = await fetchAggregatedWallpapers(1, 40, selectedCategory, debouncedSearch);
+      console.log('✨ [App.tsx] Wallpapers received:', {
+        count: res.wallpapers.length,
+        hasMore: res.hasMore,
+        total: res.total,
+        sources: res.sources,
+      });
       setWallpapers(res.wallpapers);
       setPage(1);
       setHasMore(res.hasMore);
       setTotalIndexed(res.total);
     } catch (err) {
-      console.warn('Failed to load initial aggregated wallpapers:', err);
+      console.error('❌ [App.tsx] Failed to load initial aggregated wallpapers:', err);
     } finally {
       setIsLoadingMore(false);
     }
@@ -114,9 +124,17 @@ export default function App() {
     if (isLoadingMore || !hasMore) return;
     setIsLoadingMore(true);
     const nextPage = page + 1;
+    console.log('📜 [App.tsx] Loading page:', nextPage, {
+      category: selectedCategory,
+      query: debouncedSearch,
+    });
 
     try {
       const res = await fetchAggregatedWallpapers(nextPage, 40, selectedCategory, debouncedSearch);
+      console.log('📜 [App.tsx] Loaded more wallpapers:', {
+        nextPage,
+        newItemsCount: res.wallpapers.length,
+      });
       setWallpapers((prev) => {
         const existingIds = new Set(prev.map((w) => w.id));
         const uniqueNext = res.wallpapers.filter((w) => !existingIds.has(w.id));
@@ -125,7 +143,7 @@ export default function App() {
       setPage(nextPage);
       setHasMore(res.hasMore);
     } catch (err) {
-      console.warn('Infinite scroll aggregated fetch error:', err);
+      console.error('❌ [App.tsx] Infinite scroll aggregated fetch error:', err);
     } finally {
       setIsLoadingMore(false);
     }

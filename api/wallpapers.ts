@@ -58,6 +58,13 @@ export default async function handler(req: VercelReq, res: VercelRes) {
 
     const apiKey = process.env.PEXELS_API_KEY;
 
+    console.log('⚡ [Vercel Serverless /api/wallpapers] Request received:', {
+      query: queryParam,
+      page: pageParam,
+      per_page: perPageParam,
+      hasApiKey: Boolean(apiKey),
+    });
+
     // Graceful fallback if environment variable is not set on Vercel
     if (!apiKey) {
       console.warn(
@@ -78,11 +85,15 @@ export default async function handler(req: VercelReq, res: VercelRes) {
       ? `https://api.pexels.com/v1/search?query=${encodeURIComponent(queryParam)}&page=${pageParam}&per_page=${perPageParam}`
       : `https://api.pexels.com/v1/curated?page=${pageParam}&per_page=${perPageParam}`;
 
+    console.log('🌐 [Vercel Serverless /api/wallpapers] Calling upstream Pexels:', endpoint);
+
     const upstream = await fetch(endpoint, {
       headers: {
         Authorization: apiKey.trim(),
       },
     });
+
+    console.log('📡 [Vercel Serverless /api/wallpapers] Pexels status:', upstream.status, upstream.statusText);
 
     if (!upstream.ok) {
       console.error(
@@ -97,6 +108,7 @@ export default async function handler(req: VercelReq, res: VercelRes) {
     }
 
     const data = await upstream.json();
+    console.log('✅ [Vercel Serverless /api/wallpapers] Upstream returned photos:', data.photos?.length || 0);
 
     // Cache successful responses for 1 hour at edge / CDN
     res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');

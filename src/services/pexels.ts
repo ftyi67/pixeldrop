@@ -165,11 +165,20 @@ export async function fetchPexelsPhotos(
       params.set('query', mappedQuery);
     }
 
+    const targetUrl = `/api/wallpapers?${params.toString()}`;
+    console.log('🔍 [pexels.ts fetchPexelsPhotos] Calling:', targetUrl);
+
     // Call internal secure server-side API route
-    const res = await fetch(`/api/wallpapers?${params.toString()}`);
+    const res = await fetch(targetUrl);
+    console.log('📡 [pexels.ts fetchPexelsPhotos] Status:', res.status, res.statusText);
 
     if (res.ok) {
       const data: PexelsApiResponse & { fallback?: boolean } = await res.json();
+      console.log('📦 [pexels.ts fetchPexelsPhotos] Response data:', {
+        photosCount: data.photos?.length,
+        total: data.total_results,
+        isFallback: Boolean(data.fallback),
+      });
       if (data.photos && data.photos.length > 0) {
         const mapped = data.photos.map((p) => mapPexelsPhotoToWallpaper(p, category));
         return {
@@ -179,11 +188,14 @@ export async function fetchPexelsPhotos(
           isFallback: Boolean(data.fallback),
         };
       }
+    } else {
+      console.error('❌ [pexels.ts fetchPexelsPhotos] HTTP Error:', res.status, res.statusText);
     }
   } catch (err) {
-    console.warn('Internal /api/wallpapers proxy fetch error:', err);
+    console.error('💥 [pexels.ts fetchPexelsPhotos] Catch Error:', err);
   }
 
+  console.warn('🔄 [pexels.ts fetchPexelsPhotos] Using fallback dataset');
   // Graceful high-volume fallback: Generates authentic 40-item pages of curated Pexels CDN wallpapers
   const fallback = generateFallbackPexelsBatch(page, perPage, category, searchQuery);
   return {

@@ -201,25 +201,67 @@ export async function fetchFromPexels(
   searchQuery: string
 ): Promise<Wallpaper[]> {
   const query = searchQuery.trim() || CATEGORY_SEARCH_QUERIES[category] || 'wallpaper 4k';
+  const targetUrl = `/api/wallpapers?page=${encodeURIComponent(page)}&per_page=${encodeURIComponent(perPage)}&query=${encodeURIComponent(query)}`;
+
+  console.log(`🔍 [Pexels Search] Initiating fetch:`, {
+    targetUrl,
+    rawSearchQuery: searchQuery,
+    resolvedQuery: query,
+    category,
+    page,
+    perPage,
+  });
 
   try {
-    const params = new URLSearchParams({
-      page: String(page),
-      per_page: String(perPage),
-      query: query,
+    const res = await fetch(targetUrl);
+
+    console.log(`📡 [Pexels Search] HTTP Response received:`, {
+      url: targetUrl,
+      status: res.status,
+      statusText: res.statusText,
+      ok: res.ok,
     });
 
-    const res = await fetch(`/api/wallpapers?${params.toString()}`);
     if (res.ok) {
-      const data: PexelsApiResponse & { fallback?: boolean } = await res.json();
+      const data: PexelsApiResponse & { fallback?: boolean; message?: string } = await res.json();
+
+      console.log(`📦 [Pexels Search] Response JSON payload:`, {
+        page: data.page,
+        per_page: data.per_page,
+        total_results: data.total_results,
+        receivedPhotosCount: data.photos?.length || 0,
+        isFallback: Boolean(data.fallback),
+        serverMessage: data.message || 'OK',
+        samplePhoto: data.photos?.[0]
+          ? {
+              id: data.photos[0].id,
+              photographer: data.photos[0].photographer,
+              alt: data.photos[0].alt,
+            }
+          : null,
+      });
+
       if (data.photos && data.photos.length > 0) {
-        return (data.photos || []).map((p) => normalizePexels(p, category));
+        return data.photos.map((p) => normalizePexels(p, category));
+      } else {
+        console.warn(`⚠️ [Pexels Search] API returned 0 photos for query "${query}".`);
+      }
+    } else {
+      console.error(
+        `❌ [Pexels Search] HTTP Error response: Status ${res.status} (${res.statusText}) when calling ${targetUrl}`
+      );
+      try {
+        const errorBody = await res.text();
+        console.error(`❌ [Pexels Search] Error response body:`, errorBody);
+      } catch {
+        // Ignore body read failure
       }
     }
   } catch (err) {
-    console.warn('Proxy fetch error in multiApiAggregator:', err);
+    console.error(`💥 [Pexels Search] Catch caught network/fetch exception:`, err);
   }
 
+  console.warn(`🔄 [Pexels Search] Falling back to curated catalog for query "${query}"`);
   // Generate high-resolution Pexels-modeled dataset fallback
   const fallbackList = generateFallbackPexelsBatch(page, perPage, category, searchQuery);
   return fallbackList.map((wp) => ({
@@ -300,7 +342,28 @@ export async function fetchAggregatedWallpapers(
   category: WallpaperCategory = 'all',
   searchQuery: string = ''
 ): Promise<AggregatedWallpapersResult> {
-  // Split total request count between both providers
+  const cleanSearch = searchQuery.trim();
+
+  // If user entered a specific search query, direct 100% of the query to Pexels
+  // to prevent mock/seed dilution of authentic search results
+  if (cleanSearch) {
+    console.log(`🔎 [Aggregator] Dedicated search mode active for query: "${cleanSearch}" (page: ${page}, perPage: ${perPage})`);
+    const pexelsWallpapers = await fetchFromPexels(page, perPage, category, cleanSearch);
+    
+    console.log(`🎯 [Aggregator] Search completed for "${cleanSearch}": Received ${pexelsWallpapers.length} wallpapers`);
+
+    return {
+      wallpapers: pexelsWallpapers,
+      total: Math.max(100, pexelsWallpapers.length * 20),
+      hasMore: pexelsWallpapers.length >= perPage,
+      sources: {
+        pexelsCount: pexelsWallpapers.length,
+        pixabayCount: 0,
+      },
+    };
+  }
+
+  // Split total request count between both providers for browsing mode
   const splitCount = Math.max(10, Math.ceil(perPage / 2));
 
   // Run both queries simultaneously via Promise.allSettled

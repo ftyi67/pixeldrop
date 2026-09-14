@@ -19,7 +19,10 @@ async function startServer() {
 
       const apiKey = process.env.PEXELS_API_KEY;
 
+      console.log(`[Express /api/wallpapers] Query: "${query}", Page: ${page}, PerPage: ${perPage}, HasKey: ${Boolean(apiKey)}`);
+
       if (!apiKey) {
+        console.warn('[Express /api/wallpapers] No PEXELS_API_KEY found, returning fallback response');
         return res.status(200).json({
           page: Number(page),
           per_page: Number(perPage),
@@ -31,8 +34,10 @@ async function startServer() {
       }
 
       const endpoint = query
-        ? `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&page=${page}&per_page=${perPage}`
+        ? `https://api.pexels.com/v1/search?query=${encodeURIComponent(query as string)}&page=${page}&per_page=${perPage}`
         : `https://api.pexels.com/v1/curated?page=${page}&per_page=${perPage}`;
+
+      console.log(`[Express /api/wallpapers] Calling upstream: ${endpoint}`);
 
       const upstream = await fetch(endpoint, {
         headers: {
@@ -41,6 +46,7 @@ async function startServer() {
       });
 
       if (!upstream.ok) {
+        console.error(`[Express /api/wallpapers] Upstream error: ${upstream.status} ${upstream.statusText}`);
         return res.status(upstream.status).json({
           status: upstream.status,
           photos: [],
@@ -50,6 +56,7 @@ async function startServer() {
       }
 
       const data = await upstream.json();
+      console.log(`[Express /api/wallpapers] Upstream returned ${(data as any).photos?.length || 0} photos`);
       res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
       return res.json(data);
     } catch (err) {
