@@ -37,6 +37,7 @@ export const WallpaperModal: React.FC<WallpaperModalProps> = ({
   const [downloadStatus, setDownloadStatus] = useState<string>('');
   const [copiedLink, setCopiedLink] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [modalImgSrc, setModalImgSrc] = useState(wallpaper?.fullUrl || wallpaper?.url || wallpaper?.imageUrl || '');
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -48,7 +49,8 @@ export const WallpaperModal: React.FC<WallpaperModalProps> = ({
 
   useEffect(() => {
     setImageLoaded(false);
-  }, [wallpaper?.id]);
+    setModalImgSrc(wallpaper?.fullUrl || wallpaper?.url || wallpaper?.imageUrl || '');
+  }, [wallpaper?.id, wallpaper?.fullUrl, wallpaper?.url, wallpaper?.imageUrl]);
 
   if (!wallpaper) return null;
 
@@ -195,9 +197,16 @@ export const WallpaperModal: React.FC<WallpaperModalProps> = ({
             )}
 
             <img
-              src={wallpaper.fullUrl}
+              src={modalImgSrc}
               alt={seoAltText}
+              referrerPolicy="no-referrer"
               onLoad={() => setImageLoaded(true)}
+              onError={() => {
+                const fallback = wallpaper.imageUrl || wallpaper.thumbUrl || wallpaper.url;
+                if (fallback && fallback !== modalImgSrc) {
+                  setModalImgSrc(fallback);
+                }
+              }}
               className={`max-h-[52vh] w-auto max-w-full rounded-xl object-contain shadow-2xl relative z-10 transition-opacity duration-300 ${
                 imageLoaded ? 'opacity-100' : 'opacity-0'
               }`}

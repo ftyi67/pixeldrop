@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Download, Heart, ExternalLink, Check } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Download, Heart, ExternalLink, Check, ImageIcon } from 'lucide-react';
 import { Wallpaper } from '../types';
 import { downloadWallpaperDirectly } from '../utils/downloadHelper';
 
@@ -16,8 +16,34 @@ export const WallpaperCard: React.FC<WallpaperCardProps> = ({
   onSelect,
   onToggleFavorite,
 }) => {
+  const initialSrc = wallpaper?.thumbUrl || wallpaper?.imageUrl || wallpaper?.url || '';
+  const [imgSrc, setImgSrc] = useState(initialSrc);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(!initialSrc);
   const [quickDownloading, setQuickDownloading] = useState(false);
+
+  // Sync state when wallpaper changes (e.g. infinite scroll or filter)
+  useEffect(() => {
+    const nextSrc = wallpaper?.thumbUrl || wallpaper?.imageUrl || wallpaper?.url || '';
+    setImgSrc(nextSrc);
+    setIsLoaded(false);
+    setHasError(!nextSrc);
+  }, [wallpaper?.id, wallpaper?.thumbUrl, wallpaper?.imageUrl, wallpaper?.url]);
+
+  // If the image fails to load, remove the card entirely from the grid to eliminate black gaps
+  if (hasError) {
+    return null;
+  }
+
+  const handleImageError = () => {
+    // Attempt fallback from thumbUrl to primary imageUrl/url before giving up
+    const fallback = wallpaper?.imageUrl || wallpaper?.url;
+    if (fallback && fallback !== imgSrc) {
+      setImgSrc(fallback);
+    } else {
+      setHasError(true);
+    }
+  };
 
   const handleQuickDownload = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -46,16 +72,32 @@ export const WallpaperCard: React.FC<WallpaperCardProps> = ({
           aspectRatio: `${wallpaper.width || 16} / ${wallpaper.height || 9}`,
         }}
       >
-        {!isLoaded && (
-          <div className="absolute inset-0 w-full h-full animate-pulse bg-zinc-800/40" />
-        )}
+        {/* Smooth Skeleton Loader during image download */}
+        <div
+          className={`absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-zinc-900/90 transition-opacity duration-500 ease-out z-0 pointer-events-none ${
+            isLoaded ? 'opacity-0' : 'opacity-100'
+          }`}
+          aria-hidden={isLoaded}
+        >
+          {/* Shimmering pulse background */}
+          <div className="absolute inset-0 bg-gradient-to-r from-zinc-900 via-zinc-800/40 to-zinc-900 animate-pulse" />
+
+          {/* Center placeholder icon */}
+          <div className="relative z-10 flex flex-col items-center gap-1.5 opacity-30 select-none">
+            <ImageIcon className="w-7 h-7 text-zinc-500 animate-pulse" />
+            <span className="text-[9px] font-mono uppercase tracking-widest text-zinc-500 font-semibold">
+              {wallpaper.source || '4K'}
+            </span>
+          </div>
+        </div>
 
         <img
-          src={wallpaper.thumbUrl || wallpaper.imageUrl}
+          src={imgSrc}
           alt={seoAltText}
           loading="lazy"
           referrerPolicy="no-referrer"
           onLoad={() => setIsLoaded(true)}
+          onError={handleImageError}
           className={`w-full h-full object-cover transition-all duration-500 will-change-transform group-hover:scale-[1.03] ${
             isLoaded ? 'opacity-100' : 'opacity-0'
           }`}
