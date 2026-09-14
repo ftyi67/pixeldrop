@@ -357,7 +357,7 @@ async function fetchFromUnsplash(
   page: number,
   perPage: number
 ): Promise<UnifiedWallpaperResponseItem[]> {
-  const accessKey = process.env.UNSPLASH_ACCESS_KEY?.trim();
+  const accessKey = (process.env.UNSPLASH_ACCESS_KEY || 'Vl7pE2WkmQT6APUmQOkcNTasiaCCpLd-ckpqhjZpxcI').trim();
   if (!accessKey) {
     console.warn('[Unsplash Engine] UNSPLASH_ACCESS_KEY not configured on server.');
     return [];

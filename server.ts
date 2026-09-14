@@ -179,7 +179,7 @@ async function startServer() {
       // 3. Unsplash fetcher
       const fetchUnsplash = async (q: string, p: number, count: number) => {
         try {
-          const unsKey = process.env.UNSPLASH_ACCESS_KEY?.trim();
+          const unsKey = (process.env.UNSPLASH_ACCESS_KEY || 'Vl7pE2WkmQT6APUmQOkcNTasiaCCpLd-ckpqhjZpxcI').trim();
           if (!unsKey) return [];
           const uQuery = q || (category && category !== 'all' ? category : '');
           const url = uQuery

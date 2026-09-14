@@ -239,7 +239,7 @@ export default async function handler(req: VercelReq, res: VercelRes) {
 
     const fetchUnsplash = async (count: number) => {
       try {
-        const unsKey = process.env.UNSPLASH_ACCESS_KEY?.trim();
+        const unsKey = (process.env.UNSPLASH_ACCESS_KEY || 'Vl7pE2WkmQT6APUmQOkcNTasiaCCpLd-ckpqhjZpxcI').trim();
         if (!unsKey) return [];
         const uQuery = rawQuery || (category && category !== 'all' ? category : '');
         const url = uQuery
