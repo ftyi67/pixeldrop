@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { Wallpaper, DownloadResolution } from '../types';
 import { AdSensePlaceholder } from './AdSensePlaceholder';
-import { getPexelsResizedUrl, downloadWallpaperDirect } from '../services/pexels';
+import { downloadWallpaperDirectly, getOriginalHighResUrl } from '../utils/downloadHelper';
 
 interface WallpaperModalProps {
   wallpaper: Wallpaper | null;
@@ -60,62 +60,18 @@ export const WallpaperModal: React.FC<WallpaperModalProps> = ({
         : `Rendering high-definition ${resolution} (q=100)...`
     );
 
-    // 1. Primary Original 4K / Ultra HD: raw photo.src.original with NO URL modifications
-    const rawOriginalUrl = (wallpaper.url || wallpaper.rawSrc?.original || wallpaper.fullUrl || '').split('?')[0];
-
-    // 2. Cropped high-quality resolutions with auto=compress completely removed and q=100
-    let targetUrl: string;
-    if (resolution === 'original' || wallpaper.source === 'wallhaven') {
-      targetUrl = rawOriginalUrl;
-    } else if (resolution === 'desktop') {
-      targetUrl = `${rawOriginalUrl}?cs=tinysrgb&fit=crop&w=3840&h=2160&q=100`;
-    } else if (resolution === 'mobile') {
-      targetUrl = `${rawOriginalUrl}?cs=tinysrgb&fit=crop&w=1440&h=2560&q=100`;
-    } else if (resolution === 'tablet') {
-      targetUrl = `${rawOriginalUrl}?cs=tinysrgb&fit=crop&w=2048&h=1536&q=100`;
-    } else {
-      targetUrl = rawOriginalUrl;
-    }
-
-    // Standardized PixelDrop-4K filename format
-    const cleanId = wallpaper.id.replace(/^pexels-|^pixabay-|^wallhaven-|^unsplash-/, '');
-    const filename =
-      resolution === 'original'
-        ? `PixelDrop-4K-${cleanId}.jpg`
-        : `PixelDrop-4K-${cleanId}-${resolution}.jpg`;
-
     try {
-      // 3. File Blob Handling: fetch(imageUrl) -> response.blob() -> URL.createObjectURL(blob)
-      const res = await fetch(targetUrl, { mode: 'cors' });
-      if (!res.ok) throw new Error(`HTTP fetch error ${res.status}`);
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 3000);
-      setDownloadStatus('Download complete!');
+      await downloadWallpaperDirectly(wallpaper, resolution, (status) => {
+        setDownloadStatus(status);
+      });
     } catch (err) {
-      console.warn('CORS restricted direct blob stream, falling back to direct anchor trigger:', err);
-      // Fallback: direct anchor trigger
-      const link = document.createElement('a');
-      link.href = targetUrl;
-      link.download = filename;
-      link.target = '_blank';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setDownloadStatus('Download initiated!');
+      console.error('Download error:', err);
+      setDownloadStatus('Download error, please retry.');
     } finally {
       setTimeout(() => {
         setDownloadingRes(null);
         setDownloadStatus('');
-      }, 1500);
+      }, 2000);
     }
   };
 

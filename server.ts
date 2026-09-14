@@ -380,6 +380,40 @@ async function startServer() {
   });
 
 
+  // High-Resolution Image Download Proxy (Bypasses CORS for direct 4K master downloads)
+  app.get('/api/download', async (req, res) => {
+    try {
+      const targetUrl = req.query.url as string;
+      const filename = (req.query.filename as string) || 'PixelDrop-4K.jpg';
+      if (!targetUrl) {
+        return res.status(400).send('Missing url parameter');
+      }
+
+      const upstream = await fetch(targetUrl, {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        },
+      });
+
+      if (!upstream.ok) {
+        return res.redirect(targetUrl);
+      }
+
+      const contentType = upstream.headers.get('content-type') || 'image/jpeg';
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+
+      const buffer = Buffer.from(await upstream.arrayBuffer());
+      return res.send(buffer);
+    } catch (err) {
+      console.error('Error in /api/download:', err);
+      return res.redirect((req.query.url as string) || '/');
+    }
+  });
+
   // Health check endpoint
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', hasPexelsKey: Boolean(process.env.PEXELS_API_KEY) });

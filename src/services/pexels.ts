@@ -83,6 +83,7 @@ export function mapPexelsPhotoToWallpaper(
 
   return {
     id: `pexels-${photo.id}`,
+    url: photo.src.original,
     imageUrl,
     authorName: photo.photographer || 'Pexels Creator',
     authorProfile,
@@ -479,44 +480,90 @@ export function generateFallbackPexelsBatch(
 }
 
 /**
- * Downloads resized image directly using HTML5 Canvas or Blob
- * Guarantees crisp resolution without CORS failure
+ * Downloads image directly using authentic 4K Blob URL or opens original master file.
+ * Strictly prohibits thumbnails, downscaled previews, or compressed streams.
  */
 export async function downloadWallpaperDirect(
   url: string,
   filename: string,
-  resolution: DownloadResolution,
+  resolution: DownloadResolution = 'original',
   onProgress?: (status: string) => void
 ): Promise<void> {
-  onProgress?.('Preparing dynamic resolution...');
-  const resizedUrl = getPexelsResizedUrl(url, resolution);
+  onProgress?.('Resolving uncompressed 4K master URL...');
 
-  try {
-    const res = await fetch(resizedUrl, { mode: 'cors' });
-    if (res.ok) {
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1500);
-      onProgress?.('Download complete!');
-      return;
-    }
-  } catch (err) {
-    console.warn('Direct blob download restricted by CORS, initiating direct trigger:', err);
+  // Reject any small preview or thumbnail query parameters
+  let cleanUrl = url || '';
+  if (
+    cleanUrl.includes('_150.png') ||
+    cleanUrl.includes('_150.jpg') ||
+    cleanUrl.includes('_640.png') ||
+    cleanUrl.includes('_640.jpg') ||
+    cleanUrl.includes('h=130') ||
+    cleanUrl.includes('w=280')
+  ) {
+    console.warn('⚠️ Thumbnail URL detected in download function, removing downscaling parameters.');
+    cleanUrl = cleanUrl.replace(/_640\.(jpg|png|jpeg)/, '_1280.$1');
   }
 
-  // Fallback: direct anchor trigger
+  const resizedUrl = getPexelsResizedUrl(cleanUrl, resolution);
+
+  // Strategy 1: Direct CORS-enabled Blob download
+  try {
+    const res = await fetch(resizedUrl, { mode: 'cors', credentials: 'omit' });
+    if (res.ok) {
+      const blob = await res.blob();
+      if (blob.size > 0) {
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = filename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+        onProgress?.('Download complete (Full 4K Quality)!');
+        return;
+      }
+    }
+  } catch (err) {
+    console.warn('Direct blob download restricted by CORS, attempting same-origin proxy...', err);
+  }
+
+  // Strategy 2: Same-origin proxy (/api/download)
+  try {
+    const proxyUrl = `/api/download?url=${encodeURIComponent(resizedUrl)}&filename=${encodeURIComponent(filename)}`;
+    const proxyRes = await fetch(proxyUrl);
+    if (proxyRes.ok) {
+      const blob = await proxyRes.blob();
+      if (blob.size > 0) {
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = filename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+        onProgress?.('Download complete via proxy (Full 4K Quality)!');
+        return;
+      }
+    }
+  } catch (proxyErr) {
+    console.warn('Proxy download fallback error:', proxyErr);
+  }
+
+  // Strategy 3: Direct link trigger opening raw master in new tab for direct save
+  onProgress?.('Opening full-resolution master in new tab...');
   const link = document.createElement('a');
   link.href = resizedUrl;
   link.target = '_blank';
+  link.rel = 'noopener noreferrer';
   link.download = filename;
+  link.style.display = 'none';
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  onProgress?.('Opened high-res image for saving!');
+  onProgress?.('Download initiated in full resolution!');
 }

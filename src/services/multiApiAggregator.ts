@@ -108,6 +108,7 @@ export function normalizePexels(
 
   return {
     id: `pexels-${photo.id}`,
+    url: photo.src.original || imageUrl,
     imageUrl,
     authorName: photo.photographer || 'Pexels Contributor',
     authorProfile: photo.photographer_url || `https://www.pexels.com/@${photo.photographer_id}`,
@@ -163,8 +164,11 @@ export function normalizePixabay(
 
   const imageUrl = hit.largeImageURL || hit.fullHDURL || hit.webformatURL;
 
+  const originalUrl = hit.largeImageURL || hit.imageURL || hit.fullHDURL || imageUrl;
+
   return {
     id: `pixabay-${hit.id}`,
+    url: originalUrl,
     imageUrl,
     authorName: hit.user || 'Pixabay Creator',
     authorProfile: hit.pageURL || `https://pixabay.com/users/${hit.user}-${hit.user_id}/`,
@@ -175,7 +179,7 @@ export function normalizePixabay(
     // Full Micro-SaaS UI extensions
     title: cleanTitle,
     category,
-    fullUrl: hit.largeImageURL || hit.imageURL || imageUrl,
+    fullUrl: originalUrl,
     thumbUrl: hit.webformatURL || imageUrl,
     authorLink: hit.pageURL || `https://pixabay.com/users/${hit.user}-${hit.user_id}/`,
     photographerId: hit.user_id,
@@ -186,6 +190,16 @@ export function normalizePixabay(
     likes: hit.likes || 120,
     orientation,
     color: '#18181b',
+    rawSrc: {
+      original: originalUrl,
+      large2x: hit.largeImageURL || originalUrl,
+      large: hit.webformatURL || originalUrl,
+      medium: hit.webformatURL || originalUrl,
+      small: hit.previewURL || hit.webformatURL || originalUrl,
+      portrait: originalUrl,
+      landscape: originalUrl,
+      tiny: hit.previewURL || hit.webformatURL || originalUrl,
+    },
   };
 }
 

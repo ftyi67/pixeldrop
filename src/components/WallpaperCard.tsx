@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Download, Heart, ExternalLink, Check } from 'lucide-react';
 import { Wallpaper } from '../types';
-import { downloadWallpaperDirect } from '../services/pexels';
+import { downloadWallpaperDirectly } from '../utils/downloadHelper';
 
 interface WallpaperCardProps {
   wallpaper: Wallpaper;
@@ -22,10 +22,13 @@ export const WallpaperCard: React.FC<WallpaperCardProps> = ({
   const handleQuickDownload = async (e: React.MouseEvent) => {
     e.stopPropagation();
     setQuickDownloading(true);
-    const rawId = wallpaper.id.replace(/^pexels-|^pixabay-|^wallhaven-|^unsplash-/, '');
-    const filename = `PixelDrop-4K-${rawId}.jpg`;
-    await downloadWallpaperDirect(wallpaper.url || wallpaper.fullUrl || wallpaper.imageUrl, filename, 'original');
-    setTimeout(() => setQuickDownloading(false), 1200);
+    try {
+      await downloadWallpaperDirectly(wallpaper, 'original');
+    } catch (err) {
+      console.error('Quick download failed:', err);
+    } finally {
+      setTimeout(() => setQuickDownloading(false), 1500);
+    }
   };
 
   const seoAltText = `PixelDrop - Fond d'écran ${wallpaper.category.charAt(0).toUpperCase() + wallpaper.category.slice(1)} 4K by ${wallpaper.authorName}`;
