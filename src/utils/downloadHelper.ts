@@ -138,8 +138,8 @@ export function getOriginalHighResUrl(
 }
 
 /**
- * Downloads the authentic 4K wallpaper file using Blob URL or opens direct original master.
- * Completely prevents any thumbnail or low-res image from being used.
+ * Downloads the authentic 4K wallpaper file using the server-side download proxy (/api/download).
+ * Completely eliminates 403 Forbidden errors (Wallhaven, etc.) and prevents any low-res thumbnail downscaling.
  */
 export async function downloadWallpaperDirectly(
   wallpaper: Wallpaper,
@@ -153,21 +153,22 @@ export async function downloadWallpaperDirectly(
   }
 
   const cleanId = String(wallpaper.id || 'wallpaper').replace(/^pexels-|^pixabay-|^wallhaven-|^unsplash-/, '');
+  const ext = targetUrl.toLowerCase().includes('.png') ? '.png' : '.jpg';
   const filename =
     resolution === 'original'
-      ? `PixelDrop-4K-${cleanId}.jpg`
-      : `PixelDrop-4K-${cleanId}-${resolution}.jpg`;
+      ? `PixelDrop-4K-${cleanId}${ext}`
+      : `PixelDrop-4K-${cleanId}-${resolution}${ext}`;
 
-  onProgress?.('Fetching original 4K master...');
+  onProgress?.('Contacting high-speed download proxy...');
 
-  // 1. Primary Strategy: Direct High-Resolution Blob Download
+  // The proxy route bypasses 403 Forbidden (Wallhaven referer, headers) and streams full uncompressed 4K master
+  const proxyUrl = `/api/download?url=${encodeURIComponent(targetUrl)}&filename=${encodeURIComponent(filename)}`;
+
+  // Strategy 1: Fetch via proxy -> Blob -> Object URL (Instant native download without opening new tabs)
   try {
-    const response = await fetch(targetUrl, {
-      mode: 'cors',
-      credentials: 'omit',
-    });
-
+    const response = await fetch(proxyUrl);
     if (response.ok) {
+      onProgress?.('Generating uncompressed 4K file...');
       const blob = await response.blob();
       if (blob.size > 0) {
         const blobUrl = URL.createObjectURL(blob);
@@ -179,51 +180,27 @@ export async function downloadWallpaperDirectly(
         link.click();
         document.body.removeChild(link);
 
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 15000);
         onProgress?.('Download complete (Full 4K Quality)!');
         return;
       }
+    } else {
+      console.warn(`[Download Helper] Proxy returned HTTP ${response.status}, attempting direct proxy link...`);
     }
-  } catch (corsErr) {
-    console.warn('Direct blob fetch restricted by CORS or network, trying download proxy...', corsErr);
+  } catch (fetchErr) {
+    console.warn('[Download Helper] Blob fetch failed, triggering proxy download stream:', fetchErr);
   }
 
-  // 2. Secondary Strategy: Same-origin Proxy (/api/download)
-  try {
-    const proxyUrl = `/api/download?url=${encodeURIComponent(targetUrl)}&filename=${encodeURIComponent(filename)}`;
-    const proxyRes = await fetch(proxyUrl);
-    if (proxyRes.ok) {
-      const blob = await proxyRes.blob();
-      if (blob.size > 0) {
-        const blobUrl = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = filename;
-        link.style.display = 'none';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-        onProgress?.('Download complete via proxy (Full 4K Quality)!');
-        return;
-      }
-    }
-  } catch (proxyErr) {
-    console.warn('Proxy download fallback error:', proxyErr);
-  }
-
-  // 3. Tertiary Strategy: Direct Link & Anchor Trigger (Opens original high-res master file)
-  onProgress?.('Opening full-resolution master in new tab for direct save...');
-  const directLink = document.createElement('a');
-  directLink.href = targetUrl;
-  directLink.download = filename;
-  directLink.target = '_blank';
-  directLink.rel = 'noopener noreferrer';
-  directLink.style.display = 'none';
-  document.body.appendChild(directLink);
-  directLink.click();
-  document.body.removeChild(directLink);
+  // Strategy 2: Direct Proxy Link Trigger
+  // Triggers browser download attachment via the server-side Content-Disposition header
+  onProgress?.('Starting download stream...');
+  const proxyLink = document.createElement('a');
+  proxyLink.href = proxyUrl;
+  proxyLink.download = filename;
+  proxyLink.style.display = 'none';
+  document.body.appendChild(proxyLink);
+  proxyLink.click();
+  document.body.removeChild(proxyLink);
 
   onProgress?.('Download initiated in full resolution!');
 }

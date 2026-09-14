@@ -23,8 +23,10 @@ export const NextjsInstructionsModal: React.FC<NextjsInstructionsModalProps> = (
   const projectStructure = `pixeldrop-nextjs/
 ├── app/
 │   ├── api/
-│   │   └── wallpapers/
-│   │       └── route.ts       # Secure server-side Pexels proxy (PEXELS_API_KEY)
+│   │   ├── wallpapers/
+│   │   │   └── route.ts       # Secure server-side multi-source proxy
+│   │   └── download/
+│   │       └── route.ts       # 4K master download stream proxy (bypasses 403 Forbidden)
 │   ├── layout.tsx             # Root layout with Multilingual SEO Meta & AdSense
 │   ├── page.tsx               # Home Page with PixelDrop Hero & Multi-API Aggregator
 │   ├── sitemap.ts             # MetadataRoute.Sitemap with categories

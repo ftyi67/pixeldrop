@@ -506,33 +506,10 @@ export async function downloadWallpaperDirect(
   }
 
   const resizedUrl = getPexelsResizedUrl(cleanUrl, resolution);
+  const proxyUrl = `/api/download?url=${encodeURIComponent(resizedUrl)}&filename=${encodeURIComponent(filename)}`;
 
-  // Strategy 1: Direct CORS-enabled Blob download
+  // Strategy 1: Same-origin proxy (/api/download) Blob download (Bypasses 403 Forbidden & CORS)
   try {
-    const res = await fetch(resizedUrl, { mode: 'cors', credentials: 'omit' });
-    if (res.ok) {
-      const blob = await res.blob();
-      if (blob.size > 0) {
-        const blobUrl = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = filename;
-        link.style.display = 'none';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-        onProgress?.('Download complete (Full 4K Quality)!');
-        return;
-      }
-    }
-  } catch (err) {
-    console.warn('Direct blob download restricted by CORS, attempting same-origin proxy...', err);
-  }
-
-  // Strategy 2: Same-origin proxy (/api/download)
-  try {
-    const proxyUrl = `/api/download?url=${encodeURIComponent(resizedUrl)}&filename=${encodeURIComponent(filename)}`;
     const proxyRes = await fetch(proxyUrl);
     if (proxyRes.ok) {
       const blob = await proxyRes.blob();
@@ -545,21 +522,19 @@ export async function downloadWallpaperDirect(
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-        onProgress?.('Download complete via proxy (Full 4K Quality)!');
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 15000);
+        onProgress?.('Download complete (Full 4K Quality)!');
         return;
       }
     }
   } catch (proxyErr) {
-    console.warn('Proxy download fallback error:', proxyErr);
+    console.warn('Proxy blob download error, trying direct trigger:', proxyErr);
   }
 
-  // Strategy 3: Direct link trigger opening raw master in new tab for direct save
-  onProgress?.('Opening full-resolution master in new tab...');
+  // Strategy 2: Direct browser download stream via proxy link
+  onProgress?.('Starting download stream via proxy...');
   const link = document.createElement('a');
-  link.href = resizedUrl;
-  link.target = '_blank';
-  link.rel = 'noopener noreferrer';
+  link.href = proxyUrl;
   link.download = filename;
   link.style.display = 'none';
   document.body.appendChild(link);
