@@ -63,7 +63,11 @@ export const WallpaperCard: React.FC<WallpaperCardProps> = ({
     <div
       id={`wallpaper-card-${wallpaper.id}`}
       onClick={() => onSelect(wallpaper)}
-      className="group relative mb-4 break-inside-avoid inline-block w-full cursor-pointer rounded-2xl overflow-hidden border border-white/[0.08] bg-zinc-900/40 backdrop-blur-md shadow-md transition-all duration-300 hover:border-white/25 hover:shadow-2xl hover:shadow-black/60 hover:-translate-y-1"
+      className="group relative mb-4 break-inside-avoid inline-block w-full cursor-pointer rounded-2xl overflow-hidden border border-white/[0.08] bg-zinc-900/40 backdrop-blur-md shadow-md transition-all duration-300 hover:border-white/25 hover:shadow-2xl hover:shadow-black/60 hover:-translate-y-1 touch-manipulation transform-gpu"
+      style={{
+        contentVisibility: 'auto',
+        containIntrinsicSize: `300px ${Math.round(300 * ((wallpaper.height || 9) / (wallpaper.width || 16)))}px`,
+      }}
     >
       {/* Container with dynamic aspect-ratio based on API dimensions (Prevents Layout Shift) */}
       <div
@@ -95,16 +99,17 @@ export const WallpaperCard: React.FC<WallpaperCardProps> = ({
           src={imgSrc}
           alt={seoAltText}
           loading="lazy"
+          decoding="async"
           referrerPolicy="no-referrer"
           onLoad={() => setIsLoaded(true)}
           onError={handleImageError}
-          className={`w-full h-full object-cover transition-all duration-500 will-change-transform group-hover:scale-[1.03] ${
+          className={`w-full h-full object-cover transition-all duration-500 will-change-transform transform-gpu group-hover:scale-[1.03] ${
             isLoaded ? 'opacity-100' : 'opacity-0'
           }`}
         />
 
-        {/* Top Floating Glass Badges */}
-        <div className="absolute top-2.5 inset-x-2.5 flex items-center justify-between z-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        {/* Top Floating Glass Badges - visible by default on mobile touch devices (opacity-80 md:opacity-0) and on desktop hover */}
+        <div className="absolute top-2.5 inset-x-2.5 flex items-center justify-between z-10 pointer-events-none opacity-90 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
           <div className="flex items-center gap-1.5 pointer-events-auto">
             <span className="px-2 py-0.5 rounded-full text-[10px] font-medium tracking-wide uppercase bg-black/70 backdrop-blur-md text-zinc-300 border border-white/10">
               {wallpaper.category}
@@ -126,7 +131,7 @@ export const WallpaperCard: React.FC<WallpaperCardProps> = ({
 
           <button
             onClick={(e) => onToggleFavorite(wallpaper.id, e)}
-            className={`p-1.5 rounded-full backdrop-blur-md transition-all pointer-events-auto cursor-pointer ${
+            className={`p-2 sm:p-1.5 rounded-full backdrop-blur-md transition-all pointer-events-auto cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center ${
               isFavorite
                 ? 'bg-rose-500 text-white shadow-md'
                 : 'bg-black/60 text-zinc-300 hover:text-rose-400 hover:bg-black/80 border border-white/10'
@@ -138,8 +143,8 @@ export const WallpaperCard: React.FC<WallpaperCardProps> = ({
           </button>
         </div>
 
-        {/* Subtle Dark Gradient Overlay on Hover with Photographer Name and Quick Download Icon */}
-        <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-between text-white z-10">
+        {/* Subtle Dark Gradient Overlay with Photographer Name and Quick Download Icon */}
+        <div className="absolute inset-x-0 bottom-0 p-2.5 sm:p-3 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-90 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-between text-white z-10">
           <div className="flex-1 pr-2 min-w-0">
             <p className="text-xs font-semibold truncate text-zinc-100 drop-shadow-sm">
               {wallpaper.title}
@@ -164,13 +169,13 @@ export const WallpaperCard: React.FC<WallpaperCardProps> = ({
             </div>
           </div>
 
-          {/* Quick Download Icon Button */}
+          {/* Quick Download Icon Button (Enhanced 40px touch-friendly hit area on mobile) */}
           <button
             onClick={handleQuickDownload}
-            className={`p-2 rounded-xl backdrop-blur-md border transition-all shrink-0 cursor-pointer ${
+            className={`p-2.5 sm:p-2 rounded-xl backdrop-blur-md border transition-all shrink-0 cursor-pointer min-w-[38px] min-h-[38px] flex items-center justify-center ${
               quickDownloading
                 ? 'bg-emerald-500/80 border-emerald-400 text-white'
-                : 'bg-white/15 hover:bg-white/25 border-white/20 text-white hover:scale-105 active:scale-95'
+                : 'bg-white/15 hover:bg-white/25 active:bg-white/35 border-white/20 text-white hover:scale-105 active:scale-95'
             }`}
             title="Quick download 4K Ultra HD (Max Quality)"
             aria-label="Quick download 4K wallpaper"

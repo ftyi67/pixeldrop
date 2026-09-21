@@ -16,6 +16,33 @@ export type WallpaperCategory =
 
 export type WallpaperOrientation = 'all' | 'landscape' | 'portrait' | 'square';
 
+// Pexels API Color Parameter Palette options (supported officially by Pexels API search endpoint)
+export type PexelsColorPalette =
+  | 'all'
+  | 'red'
+  | 'orange'
+  | 'yellow'
+  | 'green'
+  | 'turquoise'
+  | 'blue'
+  | 'violet'
+  | 'pink'
+  | 'brown'
+  | 'black'
+  | 'gray'
+  | 'white'
+  | string; // Allows custom hex codes e.g. '#06b6d4' or '06b6d4'
+
+// Pexels API Size / Resolution Parameter options
+// 'large' = 24MP+ (4K Ultra HD & 8K), 'medium' = 12MP-24MP (2K QHD), 'small' = 4MP-12MP (1080p Full HD)
+export type PexelsResolutionRange = 'all' | 'large' | 'medium' | 'small';
+
+export interface PexelsFilterOptions {
+  color?: PexelsColorPalette;
+  size?: PexelsResolutionRange;
+  orientation?: WallpaperOrientation;
+}
+
 export interface PexelsPhotoSrc {
   original: string;
   large2x: string;

@@ -15,6 +15,9 @@ async function startServer() {
     try {
       const rawQuery = (req.query.query as string)?.trim() || '';
       const category = (req.query.category as string)?.trim() || '';
+      const color = (req.query.color as string)?.trim() || '';
+      const size = (req.query.size as string)?.trim() || '';
+      const orientationParam = (req.query.orientation as string)?.trim() || '';
       const page = Math.max(1, parseInt((req.query.page as string) || '1', 10));
       const perPage = Math.min(
         80,
@@ -231,15 +234,34 @@ async function startServer() {
         }
       };
 
-      // 4. Pexels fetcher
+      // 4. Pexels fetcher with official Pexels API parameters: color, size, orientation
       const fetchPexels = async (q: string, p: number, count: number) => {
         try {
           const pxKey = process.env.PEXELS_API_KEY?.trim();
           if (!pxKey) return [];
-          const pxQuery = q || (category && category !== 'all' ? category : '');
-          const url = pxQuery
-            ? `https://api.pexels.com/v1/search?query=${encodeURIComponent(pxQuery)}&page=${p}&per_page=${count}`
-            : `https://api.pexels.com/v1/curated?page=${p}&per_page=${count}`;
+          let pxQuery = q || (category && category !== 'all' ? category : '');
+          if (!pxQuery && (color || size || orientationParam)) {
+            pxQuery = 'wallpaper';
+          }
+          let url = '';
+          if (pxQuery) {
+            const searchParams = new URLSearchParams();
+            searchParams.set('query', pxQuery);
+            searchParams.set('page', String(p));
+            searchParams.set('per_page', String(count));
+            if (color && color !== 'all') {
+              searchParams.set('color', color);
+            }
+            if (size && size !== 'all') {
+              searchParams.set('size', size);
+            }
+            if (orientationParam && orientationParam !== 'all') {
+              searchParams.set('orientation', orientationParam);
+            }
+            url = `https://api.pexels.com/v1/search?${searchParams.toString()}`;
+          } else {
+            url = `https://api.pexels.com/v1/curated?page=${p}&per_page=${count}`;
+          }
           const resp = await fetch(url, { headers: { Authorization: pxKey } });
           if (!resp.ok) return [];
           const data: any = await resp.json();
@@ -263,6 +285,8 @@ async function startServer() {
               authorProfile: photo.photographer_url || 'https://www.pexels.com',
               category: category || 'all',
               orientation,
+              color: photo.avg_color || color || '#18181b',
+              avg_color: photo.avg_color || color || '#18181b',
               src: {
                 original: highResUrl,
                 large2x: photo.src?.large2x || highResUrl,
@@ -284,7 +308,16 @@ async function startServer() {
       let wallpapers: any[] = [];
       const sourcesUsed: string[] = [];
 
-      if (isWallhaven) {
+      const hasAdvancedPexelsFilter = Boolean((color && color !== 'all') || (size && size !== 'all'));
+
+      if (hasAdvancedPexelsFilter) {
+        // Direct query to Pexels with exact Pexels API color and size parameters
+        const px = await fetchPexels(rawQuery, page, perPage);
+        if (px.length > 0) {
+          sourcesUsed.push('pexels');
+          wallpapers = px;
+        }
+      } else if (isWallhaven) {
         const [wh, pb] = await Promise.all([
           fetchWallhaven(rawQuery, page, perPage),
           fetchPixabay(rawQuery, page, Math.floor(perPage / 2), true),

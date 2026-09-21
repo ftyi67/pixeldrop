@@ -214,18 +214,39 @@ export async function fetchFromPexels(
   page: number,
   perPage: number,
   category: WallpaperCategory,
-  searchQuery: string
+  searchQuery: string,
+  color?: string,
+  size?: string,
+  orientation?: string
 ): Promise<Wallpaper[]> {
   const query = searchQuery.trim() || CATEGORY_SEARCH_QUERIES[category] || 'wallpaper 4k';
-  const targetUrl = `/api/wallpapers?page=${encodeURIComponent(page)}&per_page=${encodeURIComponent(
-    perPage
-  )}&query=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}`;
+  const searchParams = new URLSearchParams({
+    page: String(page),
+    per_page: String(perPage),
+    query,
+    category,
+  });
+
+  if (color && color !== 'all') {
+    searchParams.set('color', color);
+  }
+  if (size && size !== 'all') {
+    searchParams.set('size', size);
+  }
+  if (orientation && orientation !== 'all') {
+    searchParams.set('orientation', orientation);
+  }
+
+  const targetUrl = `/api/wallpapers?${searchParams.toString()}`;
 
   console.log(`🔍 [Multi-Proxy Search] Initiating fetch:`, {
     targetUrl,
     rawSearchQuery: searchQuery,
     resolvedQuery: query,
     category,
+    color,
+    size,
+    orientation,
     page,
     perPage,
   });
@@ -276,6 +297,7 @@ export async function fetchFromPexels(
           downloads: 450 + Math.floor(Math.random() * 300),
           likes: 89 + Math.floor(Math.random() * 150),
           orientation: w.orientation || (w.width >= w.height ? 'landscape' : 'portrait'),
+          color: w.color || w.avg_color || color || '#18181b',
           rawSrc: w.src,
         }));
       }
@@ -380,17 +402,23 @@ export async function fetchAggregatedWallpapers(
   page: number = 1,
   perPage: number = 40,
   category: WallpaperCategory = 'all',
-  searchQuery: string = ''
+  searchQuery: string = '',
+  color?: string,
+  size?: string,
+  orientation?: string
 ): Promise<AggregatedWallpapersResult> {
   const cleanSearch = searchQuery.trim();
+  const hasAdvancedFilter = Boolean((color && color !== 'all') || (size && size !== 'all'));
 
-  // If user entered a specific search query OR selected an illustration/anime/fantasy category,
-  // direct 100% of the request to our dual-source server proxy (/api/wallpapers)
+  // If user entered a specific search query OR selected an illustration/anime/fantasy category OR has color/size filter,
+  // direct 100% of the request to our server proxy (/api/wallpapers) with official Pexels parameters
   const isDigitalArtCategory = category === 'anime' || category === 'fantasy' || category === 'cyberpunk';
 
-  if (cleanSearch || isDigitalArtCategory) {
-    console.log(`🔎 [Aggregator] Dedicated server proxy fetch: query="${cleanSearch}", category="${category}" (page: ${page}, perPage: ${perPage})`);
-    const serverWallpapers = await fetchFromPexels(page, perPage, category, cleanSearch);
+  if (cleanSearch || isDigitalArtCategory || hasAdvancedFilter) {
+    console.log(
+      `🔎 [Aggregator] Dedicated server proxy fetch: query="${cleanSearch}", category="${category}", color="${color}", size="${size}" (page: ${page}, perPage: ${perPage})`
+    );
+    const serverWallpapers = await fetchFromPexels(page, perPage, category, cleanSearch, color, size, orientation);
     
     console.log(`🎯 [Aggregator] Received ${serverWallpapers.length} wallpapers from proxy`);
 
@@ -413,7 +441,7 @@ export async function fetchAggregatedWallpapers(
 
   // Run both queries simultaneously via Promise.allSettled
   const results = await Promise.allSettled([
-    fetchFromPexels(page, splitCount, category, searchQuery),
+    fetchFromPexels(page, splitCount, category, searchQuery, color, size, orientation),
     fetchFromPixabay(page, splitCount, category, searchQuery),
   ]);
 

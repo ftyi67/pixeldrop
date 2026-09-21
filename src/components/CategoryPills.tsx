@@ -95,7 +95,7 @@ export const CategoryPills: React.FC<CategoryPillsProps> = ({
   return (
     <div className="w-full space-y-3.5">
       {/* Category Pills Slider in Ultra-Modern Frosted Glass */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none no-scrollbar">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none no-scrollbar touch-pan-x [-webkit-overflow-scrolling:touch] overscroll-x-contain select-none">
         {CATEGORY_ITEMS.map((cat) => {
           const isActive = selectedCategory === cat.id;
           const isWallhavenSource = cat.sourceLabel === 'Wallhaven';
@@ -105,12 +105,12 @@ export const CategoryPills: React.FC<CategoryPillsProps> = ({
               key={cat.id}
               id={`cat-pill-${cat.id}`}
               onClick={() => onSelectCategory(cat.id)}
-              className={`px-3.5 py-2 rounded-2xl text-xs font-semibold whitespace-nowrap flex items-center gap-2 transition-all duration-200 shrink-0 cursor-pointer backdrop-blur-md ${
+              className={`px-3.5 py-2.5 sm:py-2 rounded-2xl text-xs font-semibold whitespace-nowrap flex items-center gap-2 transition-all duration-200 shrink-0 cursor-pointer backdrop-blur-md touch-manipulation active:scale-95 ${
                 isActive
                   ? isWallhavenSource
                     ? 'bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 text-white shadow-lg shadow-purple-500/25 border border-purple-400/50 scale-105 ring-2 ring-purple-500/30'
                     : 'bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/25 border border-indigo-400/40 scale-105'
-                  : 'bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white border border-white/[0.08]'
+                  : 'bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12] text-zinc-300 hover:text-white border border-white/[0.08]'
               }`}
             >
               {getIcon(cat.icon)}

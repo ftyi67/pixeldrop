@@ -48,7 +48,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header
       id="main-navigation-header"
-      className="sticky top-0 z-40 w-full border-b border-white/[0.08] bg-zinc-950/70 backdrop-blur-2xl transition-colors duration-300"
+      className="sticky top-0 z-40 w-full border-b border-white/[0.08] bg-zinc-950/70 backdrop-blur-2xl transition-colors duration-300 safe-top gpu-layer"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         {/* Logo & PixelDrop Brand */}

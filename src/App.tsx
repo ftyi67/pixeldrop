@@ -3,6 +3,8 @@ import {
   Wallpaper,
   WallpaperCategory,
   WallpaperOrientation,
+  PexelsColorPalette,
+  PexelsResolutionRange,
 } from './types';
 import {
   fetchAggregatedWallpapers,
@@ -12,6 +14,7 @@ import { useSystemTheme } from './hooks/useSystemTheme';
 import { Navbar } from './components/Navbar';
 import { PixelDropHero } from './components/PixelDropHero';
 import { CategoryPills } from './components/CategoryPills';
+import { AdvancedSearchFilters } from './components/AdvancedSearchFilters';
 import { MasonryGrid } from './components/MasonryGrid';
 import { WallpaperModal } from './components/WallpaperModal';
 import { GradientGenerator } from './components/GradientGenerator';
@@ -44,6 +47,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'wallpapers' | 'gradient' | 'favorites'>('wallpapers');
   const [selectedCategory, setSelectedCategory] = useState<WallpaperCategory>('all');
   const [orientation, setOrientation] = useState<WallpaperOrientation>('all');
+  const [selectedColor, setSelectedColor] = useState<PexelsColorPalette>('all');
+  const [selectedResolution, setSelectedResolution] = useState<PexelsResolutionRange>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Debounced search query (500ms delay to eliminate keystroke refetches & layout jitter)
@@ -89,15 +94,26 @@ export default function App() {
     }
   }, [wallpapers]);
 
-  // Initial and Category/Search load using Multi-API Aggregator (Promise.allSettled)
+  // Initial and Category/Search/Color/Resolution load using Multi-API Aggregator with official Pexels parameters
   const loadInitialWallpapers = useCallback(async () => {
     setIsLoadingMore(true);
     console.log('🔄 [App.tsx] loadInitialWallpapers started:', {
       category: selectedCategory,
       debouncedSearchQuery: debouncedSearch,
+      color: selectedColor,
+      size: selectedResolution,
+      orientation,
     });
     try {
-      const res = await fetchAggregatedWallpapers(1, 40, selectedCategory, debouncedSearch);
+      const res = await fetchAggregatedWallpapers(
+        1,
+        40,
+        selectedCategory,
+        debouncedSearch,
+        selectedColor !== 'all' ? selectedColor : undefined,
+        selectedResolution !== 'all' ? selectedResolution : undefined,
+        orientation !== 'all' ? orientation : undefined
+      );
       console.log('✨ [App.tsx] Wallpapers received:', {
         count: res.wallpapers.length,
         hasMore: res.hasMore,
@@ -113,13 +129,13 @@ export default function App() {
     } finally {
       setIsLoadingMore(false);
     }
-  }, [selectedCategory, debouncedSearch]);
+  }, [selectedCategory, debouncedSearch, selectedColor, selectedResolution, orientation]);
 
   useEffect(() => {
     loadInitialWallpapers();
   }, [loadInitialWallpapers]);
 
-  // Infinite Scroll Handler: Fetches the next batch of 40 aggregated wallpapers
+  // Infinite Scroll Handler: Fetches the next batch of 40 aggregated wallpapers with Pexels parameters
   const handleLoadMore = async () => {
     if (isLoadingMore || !hasMore) return;
     setIsLoadingMore(true);
@@ -127,10 +143,20 @@ export default function App() {
     console.log('📜 [App.tsx] Loading page:', nextPage, {
       category: selectedCategory,
       query: debouncedSearch,
+      color: selectedColor,
+      size: selectedResolution,
     });
 
     try {
-      const res = await fetchAggregatedWallpapers(nextPage, 40, selectedCategory, debouncedSearch);
+      const res = await fetchAggregatedWallpapers(
+        nextPage,
+        40,
+        selectedCategory,
+        debouncedSearch,
+        selectedColor !== 'all' ? selectedColor : undefined,
+        selectedResolution !== 'all' ? selectedResolution : undefined,
+        orientation !== 'all' ? orientation : undefined
+      );
       console.log('📜 [App.tsx] Loaded more wallpapers:', {
         nextPage,
         newItemsCount: res.wallpapers.length,
@@ -162,7 +188,13 @@ export default function App() {
     });
   };
 
-  // Filtered Wallpapers computation (Orientation & Favorites Tab)
+  const handleResetFilters = useCallback(() => {
+    setSelectedColor('all');
+    setSelectedResolution('all');
+    setOrientation('all');
+  }, []);
+
+  // Filtered Wallpapers computation (Orientation, Favorites Tab, and Resolution Range Bounds)
   const filteredWallpapers = useMemo(() => {
     let list = wallpapers;
 
@@ -174,8 +206,49 @@ export default function App() {
       list = list.filter((w) => w.orientation === orientation);
     }
 
+    // Client-side resolution range validation aligning with Pexels API parameters
+    if (selectedResolution === 'large') {
+      // 4K UHD & 8K: width >= 3840 or height >= 2160 or total pixels >= 8MP
+      list = list.filter(
+        (w) => w.width >= 3840 || w.height >= 2160 || (w.width * w.height) >= 8000000
+      );
+    } else if (selectedResolution === 'medium') {
+      // 2K Quad HD: width >= 2560 or height >= 1440 or total pixels >= 3.6MP
+      list = list.filter(
+        (w) => w.width >= 2560 || w.height >= 1440 || (w.width * w.height) >= 3600000
+      );
+    } else if (selectedResolution === 'small') {
+      // Full HD 1080p: width >= 1920 or height >= 1080
+      list = list.filter(
+        (w) => w.width >= 1920 || w.height >= 1080 || (w.width * w.height) >= 2000000
+      );
+    }
+
     return list;
-  }, [wallpapers, activeTab, orientation, favorites]);
+  }, [wallpapers, activeTab, orientation, favorites, selectedResolution]);
+
+  // Next and Previous Wallpaper Cycling Handlers for Slideshow & Navigation
+  const handleNextWallpaper = useCallback(() => {
+    if (!selectedWallpaper || filteredWallpapers.length === 0) return;
+    const currentIndex = filteredWallpapers.findIndex((w) => w.id === selectedWallpaper.id);
+    if (currentIndex === -1) {
+      setSelectedWallpaper(filteredWallpapers[0]);
+    } else {
+      const nextIndex = (currentIndex + 1) % filteredWallpapers.length;
+      setSelectedWallpaper(filteredWallpapers[nextIndex]);
+    }
+  }, [selectedWallpaper, filteredWallpapers]);
+
+  const handlePrevWallpaper = useCallback(() => {
+    if (!selectedWallpaper || filteredWallpapers.length === 0) return;
+    const currentIndex = filteredWallpapers.findIndex((w) => w.id === selectedWallpaper.id);
+    if (currentIndex === -1) {
+      setSelectedWallpaper(filteredWallpapers[filteredWallpapers.length - 1]);
+    } else {
+      const prevIndex = (currentIndex - 1 + filteredWallpapers.length) % filteredWallpapers.length;
+      setSelectedWallpaper(filteredWallpapers[prevIndex]);
+    }
+  }, [selectedWallpaper, filteredWallpapers]);
 
   // Tag click handler: filters search by tag
   const handleTagClick = (tag: string) => {
@@ -263,6 +336,26 @@ export default function App() {
               totalCount={wallpapers.length}
             />
 
+            {/* Advanced Pexels Search Filters (Color Palette & Resolution Range) */}
+            <AdvancedSearchFilters
+              selectedColor={selectedColor}
+              onChangeColor={(color) => {
+                setSelectedColor(color);
+                setPage(1);
+              }}
+              selectedResolution={selectedResolution}
+              onChangeResolution={(res) => {
+                setSelectedResolution(res);
+                setPage(1);
+              }}
+              onResetFilters={handleResetFilters}
+              activeCount={
+                (selectedColor !== 'all' ? 1 : 0) + (selectedResolution !== 'all' ? 1 : 0)
+              }
+              totalResults={filteredWallpapers.length}
+              isDark={isDark}
+            />
+
             {/* Favorites Tab Header if active */}
             {activeTab === 'favorites' && (
               <div className="p-4 rounded-2xl bg-zinc-900/60 border border-white/[0.08] backdrop-blur-xl flex items-center justify-between shadow-lg">
@@ -310,6 +403,8 @@ export default function App() {
               onResetSearch={() => {
                 setSearchQuery('');
                 setSelectedCategory('all');
+                setSelectedColor('all');
+                setSelectedResolution('all');
                 setOrientation('all');
               }}
               onOpenPrivacyModal={() => setIsPrivacyModalOpen(true)}
@@ -320,7 +415,7 @@ export default function App() {
       </main>
 
       {/* Global SEO Footer & Google AdSense Publisher Compliance Notice in Modern Glassmorphism */}
-      <footer className="w-full mt-16 border-t border-white/[0.08] bg-zinc-950/80 backdrop-blur-xl text-zinc-400 text-xs relative z-10">
+      <footer className="w-full mt-16 border-t border-white/[0.08] bg-zinc-950/80 backdrop-blur-xl text-zinc-400 text-xs relative z-10 safe-bottom gpu-layer">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
           {/* Top Footer Grid */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -515,7 +610,7 @@ export default function App() {
         </div>
       </footer>
 
-      {/* Simplified Glassmorphism Modal with 3 Minimal Download Buttons & SEO Section */}
+      {/* Simplified Glassmorphism Modal with Slideshow Mode, 3 Minimal Download Buttons & SEO Section */}
       <WallpaperModal
         wallpaper={selectedWallpaper}
         isFavorite={selectedWallpaper ? favorites.includes(selectedWallpaper.id) : false}
@@ -523,6 +618,11 @@ export default function App() {
         onToggleFavorite={toggleFavorite}
         onTagClick={handleTagClick}
         onOpenPrivacyModal={() => setIsPrivacyModalOpen(true)}
+        onSelectWallpaper={(wp) => setSelectedWallpaper(wp)}
+        categoryWallpapers={filteredWallpapers}
+        categoryName={selectedCategory}
+        onNextWallpaper={handleNextWallpaper}
+        onPrevWallpaper={handlePrevWallpaper}
       />
 
       {/* GDPR / CCPA Cookie Consent Banner */}

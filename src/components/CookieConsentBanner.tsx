@@ -6,7 +6,8 @@ interface CookieConsentBannerProps {
   onOpenPrivacyModal: () => void;
 }
 
-const STORAGE_KEY = 'wallcraft_cookie_consent_v2';
+const STORAGE_KEY = 'pixeldrop_cookie_consent';
+const LEGACY_STORAGE_KEY = 'wallcraft_cookie_consent_v2';
 
 export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({ onOpenPrivacyModal }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -21,7 +22,7 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({ onOpen
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         setConsent(parsed);

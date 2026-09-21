@@ -77,8 +77,8 @@ export const MasonryGrid: React.FC<MasonryGridProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Responsive Masonry Grid (Fast, volume-oriented CSS columns) */}
-      <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-4 [column-fill:_balance]">
+      {/* Responsive Masonry Grid (Fast, volume-oriented CSS columns: 2 cols on modern phones, 3 on tablet, 4 on desktop) */}
+      <div className="columns-2 sm:columns-2 md:columns-3 lg:columns-4 gap-3 sm:gap-4 [column-fill:_balance] gpu-layer">
         {wallpapers.map((wallpaper, index) => {
           const isFavorite = favorites.includes(wallpaper.id);
           // Injected Square Ad 250x250 every 12th item naturally

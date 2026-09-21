@@ -154,7 +154,10 @@ export async function fetchPexelsPhotos(
   page: number = 1,
   perPage: number = 40,
   category: WallpaperCategory = 'all',
-  searchQuery: string = ''
+  searchQuery: string = '',
+  color?: string,
+  size?: string,
+  orientation?: string
 ): Promise<{ wallpapers: Wallpaper[]; total: number; hasMore: boolean; isFallback: boolean }> {
   try {
     const params = new URLSearchParams();
@@ -166,6 +169,16 @@ export async function fetchPexelsPhotos(
     } else if (category !== 'all') {
       const mappedQuery = CATEGORY_SEARCH_MAPPING[category] || category;
       params.set('query', mappedQuery);
+    }
+
+    if (color && color !== 'all') {
+      params.set('color', color);
+    }
+    if (size && size !== 'all') {
+      params.set('size', size);
+    }
+    if (orientation && orientation !== 'all') {
+      params.set('orientation', orientation);
     }
 
     const targetUrl = `/api/wallpapers?${params.toString()}`;
