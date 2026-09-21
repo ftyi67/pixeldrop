@@ -18,6 +18,7 @@ import { AdvancedSearchFilters } from './components/AdvancedSearchFilters';
 import { MasonryGrid } from './components/MasonryGrid';
 import { WallpaperModal } from './components/WallpaperModal';
 import { GradientGenerator } from './components/GradientGenerator';
+import { ArticlesView } from './components/ArticlesView';
 import { AdSensePlaceholder } from './components/AdSensePlaceholder';
 import { CookieConsentBanner } from './components/CookieConsentBanner';
 import { PrivacyAdSenseModal } from './components/PrivacyAdSenseModal';
@@ -30,6 +31,7 @@ import {
   Search,
   ExternalLink,
   Layers,
+  BookOpen,
 } from 'lucide-react';
 
 const FAVORITES_STORAGE_KEY = 'wallcraft_favorites_v2';
@@ -44,7 +46,7 @@ export default function App() {
     toggleTheme,
   } = useSystemTheme();
 
-  const [activeTab, setActiveTab] = useState<'wallpapers' | 'gradient' | 'favorites'>('wallpapers');
+  const [activeTab, setActiveTab] = useState<'wallpapers' | 'gradient' | 'favorites' | 'articles'>('wallpapers');
   const [selectedCategory, setSelectedCategory] = useState<WallpaperCategory>('all');
   const [orientation, setOrientation] = useState<WallpaperOrientation>('all');
   const [selectedColor, setSelectedColor] = useState<PexelsColorPalette>('all');
@@ -83,6 +85,13 @@ export default function App() {
       const tabParam = params.get('tab');
       if (tabParam === 'gradient' || window.location.hash === '#gradient') {
         setActiveTab('gradient');
+      } else if (
+        tabParam === 'articles' ||
+        tabParam === 'guides' ||
+        window.location.hash === '#articles' ||
+        window.location.pathname.startsWith('/articles')
+      ) {
+        setActiveTab('articles');
       }
       const wallpaperId = params.get('wallpaper');
       if (wallpaperId && wallpapers.length > 0) {
@@ -307,6 +316,20 @@ export default function App() {
         {activeTab === 'gradient' ? (
           /* CSS Gradient Studio (Separate clean view / route) */
           <GradientGenerator onOpenPrivacyModal={() => setIsPrivacyModalOpen(true)} />
+        ) : activeTab === 'articles' ? (
+          /* SEO Articles & Guides Hub */
+          <ArticlesView
+            onSelectCategoryFilter={(cat) => {
+              setSelectedCategory(cat);
+              setActiveTab('wallpapers');
+              setPage(1);
+            }}
+            onNavigateToGallery={() => {
+              setActiveTab('wallpapers');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            isDark={isDark}
+          />
         ) : (
           /* Wallpapers Gallery & Infinite Scroll Grid */
           <div className="space-y-6">
@@ -512,6 +535,18 @@ export default function App() {
                 Creator Utilities
               </h4>
               <ul className="space-y-1.5 text-[11px]">
+                <li>
+                  <button
+                    onClick={() => {
+                      setActiveTab('articles');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-cyan-300 font-semibold"
+                  >
+                    <BookOpen className="w-3 h-3 text-cyan-400" />
+                    Articles & Guides 4K (SEO)
+                  </button>
+                </li>
                 <li>
                   <button
                     onClick={() => setActiveTab('gradient')}

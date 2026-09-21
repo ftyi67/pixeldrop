@@ -11,12 +11,13 @@ import {
   Sun,
   Moon,
   Monitor,
+  BookOpen,
 } from 'lucide-react';
 import { ThemePreference, ActiveTheme } from '../hooks/useSystemTheme';
 
 interface NavbarProps {
-  activeTab: 'wallpapers' | 'gradient' | 'favorites';
-  setActiveTab: (tab: 'wallpapers' | 'gradient' | 'favorites') => void;
+  activeTab: 'wallpapers' | 'gradient' | 'favorites' | 'articles';
+  setActiveTab: (tab: 'wallpapers' | 'gradient' | 'favorites' | 'articles') => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   favoritesCount: number;
@@ -147,6 +148,21 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <Palette className="w-3.5 h-3.5 text-purple-400" />
             <span className="hidden sm:inline">CSS Gradient</span>
+          </button>
+
+          {/* SEO Articles & Guides Tab */}
+          <button
+            id="nav-tab-articles"
+            onClick={() => setActiveTab('articles')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
+              activeTab === 'articles'
+                ? 'bg-cyan-500 text-black font-bold shadow-lg shadow-cyan-500/25'
+                : 'text-zinc-400 hover:text-cyan-300 hover:bg-white/[0.06]'
+            }`}
+            title="Articles & Guides 4K (SEO)"
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Articles</span>
           </button>
 
           {/* Favorites Tab */}

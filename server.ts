@@ -491,6 +491,11 @@ async function startServer() {
     }
   });
 
+  // Google Search Console HTML Verification endpoint
+  app.get('/google38525e8d8e7f1155.html', (req, res) => {
+    res.type('text/html').send('google-site-verification: google38525e8d8e7f1155.html');
+  });
+
   // Health check endpoint
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', hasPexelsKey: Boolean(process.env.PEXELS_API_KEY) });

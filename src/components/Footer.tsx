@@ -1,5 +1,5 @@
 import React from 'react';
-import { Droplets, ShieldCheck, Heart, Layers, ExternalLink, Sparkles, Mail, FileText, Scale } from 'lucide-react';
+import { Droplets, ShieldCheck, Heart, Layers, ExternalLink, Sparkles, Mail, FileText, Scale, BookOpen } from 'lucide-react';
 import { WallpaperCategory } from '../types';
 
 export type LegalTab = 'privacy' | 'terms' | 'dmca' | 'contact';
@@ -8,6 +8,7 @@ interface FooterProps {
   onSelectCategory?: (category: WallpaperCategory) => void;
   onOpenGradient?: () => void;
   onOpenFavorites?: () => void;
+  onOpenArticles?: () => void;
   onOpenLegal?: (tab: LegalTab) => void;
 }
 
@@ -15,6 +16,7 @@ export const Footer: React.FC<FooterProps> = ({
   onSelectCategory,
   onOpenGradient,
   onOpenFavorites,
+  onOpenArticles,
   onOpenLegal,
 }) => {
   const currentYear = new Date().getFullYear();
@@ -130,6 +132,15 @@ export const Footer: React.FC<FooterProps> = ({
                 >
                   <Sparkles className="w-3 h-3 text-amber-400" />
                   Trending Wallpapers
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => onOpenArticles?.()}
+                  className="hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-cyan-300"
+                >
+                  <BookOpen className="w-3 h-3 text-cyan-400" />
+                  Articles & Guides 4K (SEO)
                 </button>
               </li>
               <li>
