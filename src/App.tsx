@@ -6,9 +6,7 @@ import {
   PexelsColorPalette,
   PexelsResolutionRange,
 } from './types';
-import {
-  fetchAggregatedWallpapers,
-} from './services/multiApiAggregator';
+import { fetchAggregatedWallpapers } from './services/multiApiAggregator';
 import { useDebounce } from './hooks/useDebounce';
 import { useSystemTheme } from './hooks/useSystemTheme';
 import { Navbar } from './components/Navbar';
@@ -17,27 +15,16 @@ import { CategoryPills } from './components/CategoryPills';
 import { AdvancedSearchFilters } from './components/AdvancedSearchFilters';
 import { MasonryGrid } from './components/MasonryGrid';
 import { WallpaperModal } from './components/WallpaperModal';
-import { GradientGenerator } from './components/GradientGenerator';
-import { ArticlesView } from './components/ArticlesView';
+import { Footer } from './components/Footer';
 import { AdSensePlaceholder } from './components/AdSensePlaceholder';
 import { CookieConsentBanner } from './components/CookieConsentBanner';
 import { PrivacyAdSenseModal } from './components/PrivacyAdSenseModal';
 import { NextjsInstructionsModal } from './components/NextjsInstructionsModal';
-import {
-  Sparkles,
-  ShieldCheck,
-  Code2,
-  Heart,
-  Search,
-  ExternalLink,
-  Layers,
-  BookOpen,
-} from 'lucide-react';
+import { Heart, Search, X } from 'lucide-react';
 
-const FAVORITES_STORAGE_KEY = 'wallcraft_favorites_v2';
+const FAVORITES_STORAGE_KEY = 'pixeldrop_favorites_v3';
 
 export default function App() {
-  // System preference detection hook with persistent user override
   const {
     themePreference,
     resolvedTheme,
@@ -46,15 +33,15 @@ export default function App() {
     toggleTheme,
   } = useSystemTheme();
 
-  const [activeTab, setActiveTab] = useState<'wallpapers' | 'gradient' | 'favorites' | 'articles'>('wallpapers');
+  const [activeTab, setActiveTab] = useState<'wallpapers' | 'favorites'>('wallpapers');
   const [selectedCategory, setSelectedCategory] = useState<WallpaperCategory>('all');
   const [orientation, setOrientation] = useState<WallpaperOrientation>('all');
   const [selectedColor, setSelectedColor] = useState<PexelsColorPalette>('all');
   const [selectedResolution, setSelectedResolution] = useState<PexelsResolutionRange>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Debounced search query (500ms delay to eliminate keystroke refetches & layout jitter)
-  const debouncedSearch = useDebounce(searchQuery, 500);
+  // Debounced search query (400ms for snappy responsiveness)
+  const debouncedSearch = useDebounce(searchQuery, 400);
 
   // Infinite Scroll & Wallpapers State
   const [wallpapers, setWallpapers] = useState<Wallpaper[]>([]);
@@ -83,15 +70,8 @@ export default function App() {
     try {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get('tab');
-      if (tabParam === 'gradient' || window.location.hash === '#gradient') {
-        setActiveTab('gradient');
-      } else if (
-        tabParam === 'articles' ||
-        tabParam === 'guides' ||
-        window.location.hash === '#articles' ||
-        window.location.pathname.startsWith('/articles')
-      ) {
-        setActiveTab('articles');
+      if (tabParam === 'favorites' || window.location.hash === '#favorites') {
+        setActiveTab('favorites');
       }
       const wallpaperId = params.get('wallpaper');
       if (wallpaperId && wallpapers.length > 0) {
@@ -103,38 +83,26 @@ export default function App() {
     }
   }, [wallpapers]);
 
-  // Initial and Category/Search/Color/Resolution load using Multi-API Aggregator with official Pexels parameters
+  // Initial and Category/Search/Color/Resolution load
   const loadInitialWallpapers = useCallback(async () => {
     setIsLoadingMore(true);
-    console.log('🔄 [App.tsx] loadInitialWallpapers started:', {
-      category: selectedCategory,
-      debouncedSearchQuery: debouncedSearch,
-      color: selectedColor,
-      size: selectedResolution,
-      orientation,
-    });
     try {
       const res = await fetchAggregatedWallpapers(
         1,
-        40,
+        30,
         selectedCategory,
         debouncedSearch,
         selectedColor !== 'all' ? selectedColor : undefined,
         selectedResolution !== 'all' ? selectedResolution : undefined,
         orientation !== 'all' ? orientation : undefined
       );
-      console.log('✨ [App.tsx] Wallpapers received:', {
-        count: res.wallpapers.length,
-        hasMore: res.hasMore,
-        total: res.total,
-        sources: res.sources,
-      });
+
       setWallpapers(res.wallpapers);
       setPage(1);
       setHasMore(res.hasMore);
       setTotalIndexed(res.total);
     } catch (err) {
-      console.error('❌ [App.tsx] Failed to load initial aggregated wallpapers:', err);
+      console.error('Failed to load initial wallpapers:', err);
     } finally {
       setIsLoadingMore(false);
     }
@@ -144,45 +112,40 @@ export default function App() {
     loadInitialWallpapers();
   }, [loadInitialWallpapers]);
 
-  // Infinite Scroll Handler: Fetches the next batch of 40 aggregated wallpapers with Pexels parameters
-  const handleLoadMore = async () => {
+  // High-performance Infinite Scroll Handler
+  const handleLoadMore = useCallback(async () => {
     if (isLoadingMore || !hasMore) return;
     setIsLoadingMore(true);
     const nextPage = page + 1;
-    console.log('📜 [App.tsx] Loading page:', nextPage, {
-      category: selectedCategory,
-      query: debouncedSearch,
-      color: selectedColor,
-      size: selectedResolution,
-    });
 
     try {
       const res = await fetchAggregatedWallpapers(
         nextPage,
-        40,
+        30,
         selectedCategory,
         debouncedSearch,
         selectedColor !== 'all' ? selectedColor : undefined,
         selectedResolution !== 'all' ? selectedResolution : undefined,
         orientation !== 'all' ? orientation : undefined
       );
-      console.log('📜 [App.tsx] Loaded more wallpapers:', {
-        nextPage,
-        newItemsCount: res.wallpapers.length,
-      });
-      setWallpapers((prev) => {
-        const existingIds = new Set(prev.map((w) => w.id));
-        const uniqueNext = res.wallpapers.filter((w) => !existingIds.has(w.id));
-        return [...prev, ...uniqueNext];
-      });
-      setPage(nextPage);
-      setHasMore(res.hasMore);
+
+      if (res.wallpapers && res.wallpapers.length > 0) {
+        setWallpapers((prev) => {
+          const existingIds = new Set(prev.map((w) => w.id));
+          const uniqueNext = res.wallpapers.filter((w) => !existingIds.has(w.id));
+          return [...prev, ...uniqueNext];
+        });
+        setPage(nextPage);
+        setHasMore(res.hasMore);
+      } else {
+        setHasMore(false);
+      }
     } catch (err) {
-      console.error('❌ [App.tsx] Infinite scroll aggregated fetch error:', err);
+      console.error('Infinite scroll fetch error:', err);
     } finally {
       setIsLoadingMore(false);
     }
-  };
+  }, [isLoadingMore, hasMore, page, selectedCategory, debouncedSearch, selectedColor, selectedResolution, orientation]);
 
   const toggleFavorite = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -203,7 +166,7 @@ export default function App() {
     setOrientation('all');
   }, []);
 
-  // Filtered Wallpapers computation (Orientation, Favorites Tab, and Resolution Range Bounds)
+  // Filtered Wallpapers computation
   const filteredWallpapers = useMemo(() => {
     let list = wallpapers;
 
@@ -215,28 +178,17 @@ export default function App() {
       list = list.filter((w) => w.orientation === orientation);
     }
 
-    // Client-side resolution range validation aligning with Pexels API parameters
     if (selectedResolution === 'large') {
-      // 4K UHD & 8K: width >= 3840 or height >= 2160 or total pixels >= 8MP
-      list = list.filter(
-        (w) => w.width >= 3840 || w.height >= 2160 || (w.width * w.height) >= 8000000
-      );
+      list = list.filter((w) => w.width >= 3840 || w.height >= 2160 || (w.width * w.height) >= 8000000);
     } else if (selectedResolution === 'medium') {
-      // 2K Quad HD: width >= 2560 or height >= 1440 or total pixels >= 3.6MP
-      list = list.filter(
-        (w) => w.width >= 2560 || w.height >= 1440 || (w.width * w.height) >= 3600000
-      );
+      list = list.filter((w) => w.width >= 2560 || w.height >= 1440 || (w.width * w.height) >= 3600000);
     } else if (selectedResolution === 'small') {
-      // Full HD 1080p: width >= 1920 or height >= 1080
-      list = list.filter(
-        (w) => w.width >= 1920 || w.height >= 1080 || (w.width * w.height) >= 2000000
-      );
+      list = list.filter((w) => w.width >= 1920 || w.height >= 1080 || (w.width * w.height) >= 2000000);
     }
 
     return list;
   }, [wallpapers, activeTab, orientation, favorites, selectedResolution]);
 
-  // Next and Previous Wallpaper Cycling Handlers for Slideshow & Navigation
   const handleNextWallpaper = useCallback(() => {
     if (!selectedWallpaper || filteredWallpapers.length === 0) return;
     const currentIndex = filteredWallpapers.findIndex((w) => w.id === selectedWallpaper.id);
@@ -259,37 +211,25 @@ export default function App() {
     }
   }, [selectedWallpaper, filteredWallpapers]);
 
-  // Tag click handler: filters search by tag
   const handleTagClick = (tag: string) => {
     setSearchQuery(tag);
     setSelectedCategory('all');
     setActiveTab('wallpapers');
-    window.scrollTo({ top: 100, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
     <div
       className={`min-h-screen ${
-        isDark ? 'bg-[#09090b] text-[#f4f4f5]' : 'bg-slate-50 text-slate-900'
-      } flex flex-col selection:bg-indigo-500/30 selection:text-indigo-200 font-['Outfit',sans-serif] transition-colors duration-300`}
+        isDark ? 'bg-[#08090d] text-[#f1f5f9]' : 'bg-slate-50 text-slate-900'
+      } flex flex-col font-['Outfit',sans-serif]`}
     >
-      {/* Background ambient lighting for modern glassmorphism */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute -top-40 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
-        <div className="absolute top-1/3 right-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-10 left-10 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl" />
-      </div>
-
-      {/* Navigation Bar with Persistent Theme Controls */}
+      {/* Navigation Bar */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={(tab) => {
           setActiveTab(tab);
-          if (tab === 'gradient') {
-            window.location.hash = 'gradient';
-          } else {
-            window.history.replaceState(null, '', window.location.pathname);
-          }
+          window.history.replaceState(null, '', window.location.pathname);
         }}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
@@ -303,7 +243,7 @@ export default function App() {
       />
 
       {/* Top AdSense Leaderboard 728x90 */}
-      <div className="w-full px-4 pt-4 pb-2 relative z-10">
+      <div className="w-full px-4 pt-3 pb-1 relative z-10">
         <AdSensePlaceholder
           format="banner-728x90"
           slotId="top-leaderboard-728x90"
@@ -312,42 +252,23 @@ export default function App() {
       </div>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-6 relative z-10">
-        {activeTab === 'gradient' ? (
-          /* CSS Gradient Studio (Separate clean view / route) */
-          <GradientGenerator onOpenPrivacyModal={() => setIsPrivacyModalOpen(true)} />
-        ) : activeTab === 'articles' ? (
-          /* SEO Articles & Guides Hub */
-          <ArticlesView
-            onSelectCategoryFilter={(cat) => {
-              setSelectedCategory(cat);
-              setActiveTab('wallpapers');
-              setPage(1);
-            }}
-            onNavigateToGallery={() => {
-              setActiveTab('wallpapers');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            isDark={isDark}
-          />
-        ) : (
-          /* Wallpapers Gallery & Infinite Scroll Grid */
-          <div className="space-y-6">
-            {/* Interactive PixelDrop Welcome Hero Section */}
-            {activeTab === 'wallpapers' && (
-              <PixelDropHero
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                selectedCategory={selectedCategory}
-                onSelectCategory={(cat) => {
-                  setSelectedCategory(cat);
-                  setSearchQuery('');
-                }}
-                totalCount={totalIndexed}
-              />
-            )}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-3 space-y-5 relative z-10">
+        {/* Wallpapers Discovery View */}
+        {activeTab === 'wallpapers' && (
+          <>
+            {/* Studio Hero Section */}
+            <PixelDropHero
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              selectedCategory={selectedCategory}
+              onSelectCategory={(cat) => {
+                setSelectedCategory(cat);
+                setSearchQuery('');
+              }}
+              totalCount={totalIndexed}
+            />
 
-            {/* Category Pills & Orientation Filters */}
+            {/* Category Navigation & Orientation Selector */}
             <CategoryPills
               selectedCategory={selectedCategory}
               onSelectCategory={(cat) => {
@@ -359,7 +280,7 @@ export default function App() {
               totalCount={wallpapers.length}
             />
 
-            {/* Advanced Pexels Search Filters (Color Palette & Resolution Range) */}
+            {/* Advanced Filters (Color & Resolution) */}
             <AdvancedSearchFilters
               selectedColor={selectedColor}
               onChangeColor={(color) => {
@@ -379,27 +300,11 @@ export default function App() {
               isDark={isDark}
             />
 
-            {/* Favorites Tab Header if active */}
-            {activeTab === 'favorites' && (
-              <div className="p-4 rounded-2xl bg-zinc-900/60 border border-white/[0.08] backdrop-blur-xl flex items-center justify-between shadow-lg">
-                <div className="flex items-center gap-2 text-white font-semibold text-sm">
-                  <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
-                  <span>Your Saved Favorites ({favorites.length})</span>
-                </div>
-                <button
-                  onClick={() => setActiveTab('wallpapers')}
-                  className="text-xs text-indigo-400 hover:text-indigo-300 hover:underline cursor-pointer"
-                >
-                  Browse Full Gallery
-                </button>
-              </div>
-            )}
-
-            {/* Active Search Filter Banner */}
+            {/* Active Search Banner */}
             {searchQuery && (
-              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-zinc-900/50 border border-white/[0.08] backdrop-blur-xl text-xs text-zinc-300">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-[#10121a] border border-white/[0.08] text-xs text-zinc-300">
                 <div className="flex items-center gap-2">
-                  <Search className="w-3.5 h-3.5 text-indigo-400" />
+                  <Search className="w-3.5 h-3.5 text-cyan-400" />
                   <span>
                     Searching 4K wallpapers for &ldquo;
                     <strong className="text-white font-semibold">{searchQuery}</strong>
@@ -408,244 +313,74 @@ export default function App() {
                 </div>
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="text-indigo-400 hover:text-indigo-300 hover:underline font-semibold cursor-pointer"
+                  className="text-cyan-400 hover:text-cyan-300 hover:underline font-semibold cursor-pointer flex items-center gap-1"
                 >
-                  Clear Search
+                  <X className="w-3.5 h-3.5" />
+                  <span>Clear</span>
                 </button>
               </div>
             )}
+          </>
+        )}
 
-            {/* Pinterest-style Masonry Grid with Seamless 40-item Infinite Scroll */}
-            <MasonryGrid
-              wallpapers={filteredWallpapers}
-              favorites={favorites}
-              isLoadingMore={isLoadingMore}
-              hasMore={hasMore}
-              onSelect={(wp) => setSelectedWallpaper(wp)}
-              onToggleFavorite={toggleFavorite}
-              onResetSearch={() => {
-                setSearchQuery('');
-                setSelectedCategory('all');
-                setSelectedColor('all');
-                setSelectedResolution('all');
-                setOrientation('all');
-              }}
-              onOpenPrivacyModal={() => setIsPrivacyModalOpen(true)}
-              onLoadMore={handleLoadMore}
-            />
+        {/* Favorites Header View */}
+        {activeTab === 'favorites' && (
+          <div className="py-4 space-y-3">
+            <div className="p-4 rounded-xl bg-[#10121a] border border-white/[0.08] flex items-center justify-between">
+              <div className="flex items-center gap-2.5 text-white font-semibold text-sm">
+                <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
+                <span>Your Saved Wallpapers ({favorites.length})</span>
+              </div>
+              <button
+                onClick={() => setActiveTab('wallpapers')}
+                className="text-xs text-cyan-400 hover:text-cyan-300 hover:underline cursor-pointer font-medium"
+              >
+                ← Back to Discover
+              </button>
+            </div>
+            {favorites.length === 0 && (
+              <div className="py-16 text-center text-zinc-500 text-xs">
+                You haven&apos;t saved any wallpapers yet. Click the heart icon on any wallpaper to add it here.
+              </div>
+            )}
           </div>
         )}
+
+        {/* Responsive 60fps Masonry Grid with Bulletproof Infinite Scroll */}
+        <MasonryGrid
+          wallpapers={filteredWallpapers}
+          favorites={favorites}
+          isLoadingMore={isLoadingMore}
+          hasMore={hasMore && activeTab === 'wallpapers'}
+          onSelect={(wp) => setSelectedWallpaper(wp)}
+          onToggleFavorite={toggleFavorite}
+          onResetSearch={() => {
+            setSearchQuery('');
+            setSelectedCategory('all');
+            setSelectedColor('all');
+            setSelectedResolution('all');
+            setOrientation('all');
+          }}
+          onOpenPrivacyModal={() => setIsPrivacyModalOpen(true)}
+          onLoadMore={handleLoadMore}
+        />
       </main>
 
-      {/* Global SEO Footer & Google AdSense Publisher Compliance Notice in Modern Glassmorphism */}
-      <footer className="w-full mt-16 border-t border-white/[0.08] bg-zinc-950/80 backdrop-blur-xl text-zinc-400 text-xs relative z-10 safe-bottom gpu-layer">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
-          {/* Top Footer Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            {/* Col 1: Brand & Mission */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
-                  <Sparkles className="w-3.5 h-3.5" />
-                </div>
-                <span className="font-bold text-white text-sm tracking-tight">
-                  WallCraft Micro-SaaS
-                </span>
-              </div>
-              <p className="text-[11px] text-zinc-400 leading-relaxed font-light">
-                High-volume wallpaper utility with 40-item infinite scrolling, Pexels dynamic pixel resizing (Desktop, Mobile, Tablet), and Google AdSense compliance.
-              </p>
-              <div className="flex items-center gap-2.5 pt-1">
-                <span className="px-2.5 py-0.5 rounded-full bg-white/[0.04] border border-white/10 text-[10px] font-mono text-indigo-300 font-semibold">
-                  Pexels API
-                </span>
-                <span className="px-2.5 py-0.5 rounded-full bg-white/[0.04] border border-white/10 text-[10px] font-mono text-emerald-400 font-semibold">
-                  GDPR & CCPA
-                </span>
-              </div>
-            </div>
+      {/* Global Pro Studio Footer */}
+      <Footer
+        onSelectCategory={(cat) => {
+          setSelectedCategory(cat);
+          setActiveTab('wallpapers');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onOpenFavorites={() => {
+          setActiveTab('favorites');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onOpenLegal={() => setIsPrivacyModalOpen(true)}
+      />
 
-            {/* Col 2: Categories Directory */}
-            <div>
-              <h4 className="font-semibold text-white text-xs mb-3 uppercase tracking-wider">
-                Popular Categories
-              </h4>
-              <ul className="space-y-1.5 text-[11px]">
-                <li>
-                  <button
-                    onClick={() => {
-                      setSelectedCategory('nature');
-                      setActiveTab('wallpapers');
-                    }}
-                    className="hover:text-white transition-colors cursor-pointer"
-                  >
-                    4K Alpine & Ocean Landscapes
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => {
-                      setSelectedCategory('cyberpunk');
-                      setActiveTab('wallpapers');
-                    }}
-                    className="hover:text-white transition-colors cursor-pointer"
-                  >
-                    Cyberpunk & Tokyo Neon Alleyways
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => {
-                      setSelectedCategory('minimalist');
-                      setActiveTab('wallpapers');
-                    }}
-                    className="hover:text-white transition-colors cursor-pointer"
-                  >
-                    Minimalist Architecture & Concrete
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => {
-                      setSelectedCategory('dark');
-                      setActiveTab('wallpapers');
-                    }}
-                    className="hover:text-white transition-colors cursor-pointer"
-                  >
-                    AMOLED Deep Obsidian Wallpapers
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => {
-                      setSelectedCategory('anime');
-                      setActiveTab('wallpapers');
-                    }}
-                    className="hover:text-white transition-colors cursor-pointer"
-                  >
-                    Anime & Cherry Blossom Scenery
-                  </button>
-                </li>
-              </ul>
-            </div>
-
-            {/* Col 3: Tools & Utilities */}
-            <div>
-              <h4 className="font-semibold text-white text-xs mb-3 uppercase tracking-wider">
-                Creator Utilities
-              </h4>
-              <ul className="space-y-1.5 text-[11px]">
-                <li>
-                  <button
-                    onClick={() => {
-                      setActiveTab('articles');
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className="hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-cyan-300 font-semibold"
-                  >
-                    <BookOpen className="w-3 h-3 text-cyan-400" />
-                    Articles & Guides 4K (SEO)
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => setActiveTab('gradient')}
-                    className="hover:text-white transition-colors cursor-pointer flex items-center gap-1.5"
-                  >
-                    <Layers className="w-3 h-3 text-indigo-400" />
-                    CSS Gradient Studio (Canvas PNG)
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => setIsNextjsModalOpen(true)}
-                    className="hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Code2 className="w-3 h-3 text-purple-400" />
-                    Next.js App Router Architecture
-                  </button>
-                </li>
-                <li>
-                  <a
-                    href="https://www.pexels.com/license/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-white transition-colors flex items-center gap-1"
-                  >
-                    Pexels License Agreement <ExternalLink className="w-2.5 h-2.5 text-zinc-400" />
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            {/* Col 4: AdSense & Privacy Disclosures */}
-            <div>
-              <h4 className="font-semibold text-white text-xs mb-3 uppercase tracking-wider flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                Legal & AdSense Notice
-              </h4>
-              <ul className="space-y-1.5 text-[11px]">
-                <li>
-                  <button
-                    onClick={() => setIsPrivacyModalOpen(true)}
-                    className="hover:text-white transition-colors text-left cursor-pointer"
-                  >
-                    Google AdSense & DART Cookie Disclosure
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => setIsPrivacyModalOpen(true)}
-                    className="hover:text-white transition-colors text-left cursor-pointer"
-                  >
-                    GDPR European Consent Rights
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => setIsPrivacyModalOpen(true)}
-                    className="hover:text-white transition-colors text-left cursor-pointer"
-                  >
-                    CCPA: Do Not Sell My Info
-                  </button>
-                </li>
-                <li>
-                  <a
-                    href="https://adssettings.google.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-white transition-colors flex items-center gap-1"
-                  >
-                    AdChoices Personalization Settings <ExternalLink className="w-2.5 h-2.5 text-zinc-400" />
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Bottom Bar */}
-          <div className="pt-6 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-zinc-400">
-            <p>
-              © {new Date().getFullYear()} WallCraft Micro-SaaS. Powered by Pexels API and dynamic image processing.
-            </p>
-            <div className="flex items-center gap-4">
-              <button onClick={() => setIsPrivacyModalOpen(true)} className="hover:underline cursor-pointer">
-                Privacy Policy
-              </button>
-              <span>•</span>
-              <button onClick={() => setIsPrivacyModalOpen(true)} className="hover:underline cursor-pointer">
-                Cookie Settings
-              </button>
-              <span>•</span>
-              <button onClick={() => setIsNextjsModalOpen(true)} className="hover:underline cursor-pointer">
-                Next.js App Router
-              </button>
-            </div>
-          </div>
-        </div>
-      </footer>
-
-      {/* Simplified Glassmorphism Modal with Slideshow Mode, 3 Minimal Download Buttons & SEO Section */}
+      {/* 4K Wallpaper Modal */}
       <WallpaperModal
         wallpaper={selectedWallpaper}
         isFavorite={selectedWallpaper ? favorites.includes(selectedWallpaper.id) : false}
@@ -663,13 +398,13 @@ export default function App() {
       {/* GDPR / CCPA Cookie Consent Banner */}
       <CookieConsentBanner onOpenPrivacyModal={() => setIsPrivacyModalOpen(true)} />
 
-      {/* Privacy Policy & Google AdSense Compliance Modal */}
+      {/* Privacy Policy & Google AdSense Modal */}
       <PrivacyAdSenseModal
         isOpen={isPrivacyModalOpen}
         onClose={() => setIsPrivacyModalOpen(false)}
       />
 
-      {/* Next.js & Vercel Developer Guide Modal */}
+      {/* Next.js & Vercel Stack Architecture Modal */}
       <NextjsInstructionsModal
         isOpen={isNextjsModalOpen}
         onClose={() => setIsNextjsModalOpen(false)}

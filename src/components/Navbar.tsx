@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Search,
-  Palette,
   Layers,
   Heart,
   ShieldCheck,
@@ -11,19 +10,17 @@ import {
   Sun,
   Moon,
   Monitor,
-  BookOpen,
 } from 'lucide-react';
 import { ThemePreference, ActiveTheme } from '../hooks/useSystemTheme';
 
 interface NavbarProps {
-  activeTab: 'wallpapers' | 'gradient' | 'favorites' | 'articles';
-  setActiveTab: (tab: 'wallpapers' | 'gradient' | 'favorites' | 'articles') => void;
+  activeTab: 'wallpapers' | 'favorites';
+  setActiveTab: (tab: 'wallpapers' | 'favorites') => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   favoritesCount: number;
   onOpenPrivacyModal: () => void;
   onOpenNextjsModal: () => void;
-  onOpenPexelsModal?: () => void;
   themePreference?: ThemePreference;
   resolvedTheme?: ActiveTheme;
   onToggleTheme?: () => void;
@@ -46,10 +43,23 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
 
+  // Keyboard shortcut '/' to focus search input
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        const searchInput = document.getElementById('search-wallpapers-input');
+        searchInput?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
     <header
       id="main-navigation-header"
-      className="sticky top-0 z-40 w-full border-b border-white/[0.08] bg-zinc-950/70 backdrop-blur-2xl transition-colors duration-300 safe-top gpu-layer"
+      className="sticky top-0 z-40 w-full border-b border-white/[0.08] bg-[#08090d]/95 backdrop-blur-md transition-colors duration-200 safe-top"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         {/* Logo & PixelDrop Brand */}
@@ -57,44 +67,36 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={() => setActiveTab('wallpapers')}
           className="flex items-center gap-3 cursor-pointer group shrink-0"
         >
-          {/* Glowing Droplet inside a Pixel Grid SVG/Icon Badge */}
-          <div className="relative w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-600 to-cyan-400 p-0.5 shadow-lg shadow-cyan-500/20 group-hover:shadow-cyan-400/40 group-hover:scale-105 transition-all">
-            <div className="w-full h-full bg-zinc-950 rounded-[14px] flex items-center justify-center relative overflow-hidden">
-              <div
-                className="absolute inset-0 opacity-40"
-                style={{
-                  backgroundImage: `linear-gradient(to right, rgba(255,255,255,0.18) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.18) 1px, transparent 1px)`,
-                  backgroundSize: '5px 5px',
-                }}
-              />
-              <Droplets className="w-5 h-5 text-cyan-300 relative z-10 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+          <div className="relative w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-600 to-cyan-400 p-0.5 shadow-md shadow-cyan-500/20 group-hover:scale-105 transition-transform">
+            <div className="w-full h-full bg-[#0a0c12] rounded-[10px] flex items-center justify-center relative overflow-hidden">
+              <Droplets className="w-4 h-4 text-cyan-400 relative z-10" />
             </div>
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-extrabold text-base tracking-tight text-white group-hover:text-cyan-300 transition-colors font-['Space_Grotesk',sans-serif]">
+              <span className="font-bold text-base tracking-tight text-white font-['Space_Grotesk',sans-serif]">
                 Pixel<span className="text-cyan-400">Drop</span>
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-mono tracking-wider uppercase bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-bold">
-                4K UHD
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-mono tracking-wider uppercase bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-bold">
+                4K PRO
               </span>
             </div>
-            <p className="text-[10px] text-zinc-400 hidden sm:block font-light">
-              Fond d'écran 4K Gratuit & Micro-SaaS
+            <p className="text-[10px] text-zinc-400 hidden sm:block">
+              Ultra HD Wallpaper Studio
             </p>
           </div>
         </div>
 
-        {/* Global Search Bar (Glassmorphism design with Lucide search) */}
+        {/* Global Search Bar */}
         <div className="flex-1 max-w-md hidden md:block">
           <div
-            className={`relative flex items-center rounded-2xl bg-white/[0.04] border transition-all ${
+            className={`relative flex items-center rounded-xl bg-[#10121a] border transition-all ${
               isSearchFocused
-                ? 'border-indigo-500/80 ring-2 ring-indigo-500/20 shadow-lg shadow-indigo-500/10 bg-white/[0.07]'
+                ? 'border-cyan-500/60 ring-2 ring-cyan-500/20 shadow-md shadow-cyan-500/10'
                 : 'border-white/[0.08] hover:border-white/20'
             }`}
           >
-            <Search className="w-4 h-4 text-zinc-400 ml-3.5 shrink-0" />
+            <Search className="w-4 h-4 text-zinc-500 ml-3.5 shrink-0" />
             <input
               id="search-wallpapers-input"
               type="text"
@@ -108,94 +110,70 @@ export const Navbar: React.FC<NavbarProps> = ({
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-transparent px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none"
             />
-            {searchQuery && (
+            {searchQuery ? (
               <button
                 onClick={() => setSearchQuery('')}
-                className="mr-3 p-1 rounded-full text-zinc-400 hover:text-white"
+                className="mr-3 p-1 rounded text-zinc-400 hover:text-white"
                 title="Clear search"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
+            ) : (
+              <span className="mr-3 text-[10px] font-mono text-zinc-500 border border-white/10 px-1.5 py-0.5 rounded bg-white/[0.02]">
+                /
+              </span>
             )}
           </div>
         </div>
 
         {/* Navigation Tabs & Controls */}
-        <div className="flex items-center gap-2 sm:gap-2.5">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Wallpapers Tab */}
           <button
             id="nav-tab-wallpapers"
             onClick={() => setActiveTab('wallpapers')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
               activeTab === 'wallpapers'
-                ? 'bg-indigo-600 text-white font-semibold shadow-lg shadow-indigo-600/25'
-                : 'text-zinc-400 hover:text-white hover:bg-white/[0.06]'
+                ? 'bg-cyan-500 text-black font-semibold shadow-md shadow-cyan-500/20'
+                : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Gallery</span>
-          </button>
-
-          {/* Gradient Studio Tab */}
-          <button
-            id="nav-tab-gradient"
-            onClick={() => setActiveTab('gradient')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
-              activeTab === 'gradient'
-                ? 'bg-indigo-600 text-white font-semibold shadow-lg shadow-indigo-600/25'
-                : 'text-zinc-400 hover:text-white hover:bg-white/[0.06]'
-            }`}
-          >
-            <Palette className="w-3.5 h-3.5 text-purple-400" />
-            <span className="hidden sm:inline">CSS Gradient</span>
-          </button>
-
-          {/* SEO Articles & Guides Tab */}
-          <button
-            id="nav-tab-articles"
-            onClick={() => setActiveTab('articles')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
-              activeTab === 'articles'
-                ? 'bg-cyan-500 text-black font-bold shadow-lg shadow-cyan-500/25'
-                : 'text-zinc-400 hover:text-cyan-300 hover:bg-white/[0.06]'
-            }`}
-            title="Articles & Guides 4K (SEO)"
-          >
-            <BookOpen className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Articles</span>
+            <span>Discover</span>
           </button>
 
           {/* Favorites Tab */}
           <button
             id="nav-tab-favorites"
             onClick={() => setActiveTab('favorites')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all relative cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors relative cursor-pointer ${
               activeTab === 'favorites'
-                ? 'bg-indigo-600 text-white font-semibold'
-                : 'text-zinc-400 hover:text-white hover:bg-white/[0.06]'
+                ? 'bg-cyan-500 text-black font-semibold shadow-md shadow-cyan-500/20'
+                : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
             }`}
             title="Saved Wallpapers"
           >
             <Heart className={`w-3.5 h-3.5 ${favoritesCount > 0 ? 'text-rose-400 fill-rose-400' : ''}`} />
+            <span className="hidden sm:inline">Favorites</span>
             {favoritesCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-rose-500 text-white font-bold">
+              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-rose-500 text-white font-bold">
                 {favoritesCount}
               </span>
             )}
           </button>
 
-          <div className="w-px h-5 bg-white/[0.08] mx-0.5 hidden sm:block" />
+          <div className="w-px h-4 bg-white/10 mx-1 hidden sm:block" />
 
-          {/* Next.js & SEO Guide */}
+          {/* Architecture Modal */}
           <button
             onClick={onOpenNextjsModal}
-            className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-all cursor-pointer"
-            title="Next.js App Router Architecture & SEO"
+            className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.04] transition-colors cursor-pointer"
+            title="App Architecture & Stack"
           >
             <Code2 className="w-4 h-4" />
           </button>
 
-          {/* Theme Switcher with OS Auto-Detection & Persistent Override */}
+          {/* Theme Switcher */}
           <div className="relative">
             <button
               id="btn-theme-toggle"
@@ -204,27 +182,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                 e.preventDefault();
                 setShowThemeMenu((prev) => !prev);
               }}
-              className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-all cursor-pointer relative group"
-              title={`Theme: ${themePreference === 'system' ? 'System (Auto)' : themePreference === 'dark' ? 'Dark' : 'Light'} • Click to toggle, right-click for options`}
+              className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.04] transition-colors cursor-pointer relative"
+              title={`Theme: ${themePreference === 'system' ? 'System (Auto)' : themePreference === 'dark' ? 'Dark' : 'Light'}`}
               aria-label="Toggle dark/light mode"
             >
               {resolvedTheme === 'dark' ? (
-                <Moon className="w-4 h-4 text-indigo-300 group-hover:rotate-12 transition-transform" />
+                <Moon className="w-4 h-4 text-cyan-300" />
               ) : (
-                <Sun className="w-4 h-4 text-amber-400 group-hover:rotate-45 transition-transform" />
-              )}
-              {themePreference === 'system' && (
-                <span
-                  className="absolute bottom-1 right-1 w-1.5 h-1.5 rounded-full bg-cyan-400 ring-2 ring-zinc-950"
-                  title="System preference active"
-                />
+                <Sun className="w-4 h-4 text-amber-400" />
               )}
             </button>
 
-            {/* Quick Theme Selector Flyout */}
             {showThemeMenu && (
               <div
-                className="absolute right-0 mt-2 w-36 py-1.5 bg-zinc-900 border border-white/10 rounded-xl shadow-xl backdrop-blur-xl z-50 text-xs text-zinc-300"
+                className="absolute right-0 mt-2 w-36 py-1 bg-[#10121a] border border-white/10 rounded-xl shadow-xl z-50 text-xs text-zinc-300"
                 onMouseLeave={() => setShowThemeMenu(false)}
               >
                 <button
@@ -232,9 +203,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     onSetThemePreference?.('system');
                     setShowThemeMenu(false);
                   }}
-                  className={`w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-white/[0.08] transition-colors ${
-                    themePreference === 'system' ? 'text-indigo-400 font-semibold' : ''
-                  }`}
+                  className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-white/[0.06] transition-colors"
                 >
                   <Monitor className="w-3.5 h-3.5" />
                   <span>System (OS)</span>
@@ -244,9 +213,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     onSetThemePreference?.('dark');
                     setShowThemeMenu(false);
                   }}
-                  className={`w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-white/[0.08] transition-colors ${
-                    themePreference === 'dark' ? 'text-indigo-400 font-semibold' : ''
-                  }`}
+                  className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-white/[0.06] transition-colors"
                 >
                   <Moon className="w-3.5 h-3.5" />
                   <span>Dark Mode</span>
@@ -256,9 +223,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     onSetThemePreference?.('light');
                     setShowThemeMenu(false);
                   }}
-                  className={`w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-white/[0.08] transition-colors ${
-                    themePreference === 'light' ? 'text-indigo-400 font-semibold' : ''
-                  }`}
+                  className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-white/[0.06] transition-colors"
                 >
                   <Sun className="w-3.5 h-3.5" />
                   <span>Light Mode</span>
@@ -270,8 +235,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Privacy & AdSense Modal */}
           <button
             onClick={onOpenPrivacyModal}
-            className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-all cursor-pointer"
-            title="Privacy, GDPR & Google AdSense Setup"
+            className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.04] transition-colors cursor-pointer"
+            title="Privacy & Legal"
           >
             <ShieldCheck className="w-4 h-4" />
           </button>
@@ -280,11 +245,11 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Mobile Search Bar */}
       <div className="px-4 pb-3 md:hidden">
-        <div className="relative flex items-center rounded-2xl bg-white/[0.04] border border-white/[0.08]">
-          <Search className="w-4 h-4 text-zinc-400 ml-3.5 shrink-0" />
+        <div className="relative flex items-center rounded-xl bg-[#10121a] border border-white/[0.08]">
+          <Search className="w-4 h-4 text-zinc-500 ml-3.5 shrink-0" />
           <input
             type="text"
-            placeholder="Search nature, anime, cyberpunk wallpapers..."
+            placeholder="Search wallpapers (nature, anime, 4K)..."
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);

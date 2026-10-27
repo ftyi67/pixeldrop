@@ -400,7 +400,7 @@ export interface AggregatedWallpapersResult {
  */
 export async function fetchAggregatedWallpapers(
   page: number = 1,
-  perPage: number = 40,
+  perPage: number = 30,
   category: WallpaperCategory = 'all',
   searchQuery: string = '',
   color?: string,
@@ -408,78 +408,46 @@ export async function fetchAggregatedWallpapers(
   orientation?: string
 ): Promise<AggregatedWallpapersResult> {
   const cleanSearch = searchQuery.trim();
-  const hasAdvancedFilter = Boolean((color && color !== 'all') || (size && size !== 'all'));
 
-  // If user entered a specific search query OR selected an illustration/anime/fantasy category OR has color/size filter,
-  // direct 100% of the request to our server proxy (/api/wallpapers) with official Pexels parameters
-  const isDigitalArtCategory = category === 'anime' || category === 'fantasy' || category === 'cyberpunk';
-
-  if (cleanSearch || isDigitalArtCategory || hasAdvancedFilter) {
-    console.log(
-      `🔎 [Aggregator] Dedicated server proxy fetch: query="${cleanSearch}", category="${category}", color="${color}", size="${size}" (page: ${page}, perPage: ${perPage})`
-    );
+  try {
     const serverWallpapers = await fetchFromPexels(page, perPage, category, cleanSearch, color, size, orientation);
     
-    console.log(`🎯 [Aggregator] Received ${serverWallpapers.length} wallpapers from proxy`);
+    if (serverWallpapers && serverWallpapers.length > 0) {
+      const pexelsCount = serverWallpapers.filter((w) => w.source === 'pexels').length;
+      const unsplashCount = serverWallpapers.filter((w) => w.source === 'unsplash').length;
+      const wallhavenCount = serverWallpapers.filter((w) => w.source === 'wallhaven').length;
+      const pixabayCount = serverWallpapers.filter((w) => w.source === 'pixabay').length;
 
-    const pexelsCount = serverWallpapers.filter((w) => w.source === 'pexels').length;
-    const wallhavenCount = serverWallpapers.filter((w) => w.source === 'wallhaven').length;
-
-    return {
-      wallpapers: serverWallpapers,
-      total: Math.max(100, serverWallpapers.length * 20),
-      hasMore: serverWallpapers.length >= perPage,
-      sources: {
-        pexelsCount: pexelsCount + wallhavenCount,
-        pixabayCount: 0,
-      },
-    };
+      return {
+        wallpapers: serverWallpapers,
+        total: Math.max(1000, page * 30 + (serverWallpapers.length >= 10 ? 500 : 0)),
+        hasMore: serverWallpapers.length >= 8,
+        sources: {
+          pexelsCount: pexelsCount + unsplashCount + wallhavenCount,
+          pixabayCount,
+        },
+      };
+    }
+  } catch (err) {
+    console.error(`💥 [Aggregator] Server proxy fetch error:`, err);
   }
 
-  // Split total request count between both providers for browsing mode
-  const splitCount = Math.max(10, Math.ceil(perPage / 2));
-
-  // Run both queries simultaneously via Promise.allSettled
-  const results = await Promise.allSettled([
-    fetchFromPexels(page, splitCount, category, searchQuery, color, size, orientation),
-    fetchFromPixabay(page, splitCount, category, searchQuery),
-  ]);
-
-  let pexelsWallpapers: Wallpaper[] = [];
-  let pixabayWallpapers: Wallpaper[] = [];
-
-  if (results[0].status === 'fulfilled') {
-    pexelsWallpapers = results[0].value;
-  } else {
-    console.warn('Pexels API fetch failed in aggregator:', results[0].reason);
-    // Fallback on error to keep catalog populated
-    pexelsWallpapers = generateFallbackPexelsBatch(page, splitCount, category, searchQuery).map((wp) => ({
-      ...wp,
-      id: `pexels-${wp.id}`,
-      source: 'pexels' as const,
-      imageUrl: wp.thumbUrl,
-      authorProfile: wp.authorLink || 'https://www.pexels.com',
-    }));
-  }
-
-  if (results[1].status === 'fulfilled') {
-    pixabayWallpapers = results[1].value;
-  } else {
-    console.warn('Pixabay API fetch failed in aggregator:', results[1].reason);
-    // Fallback on error
-    pixabayWallpapers = generatePixabayCuratedCatalog(category, searchQuery, page, splitCount);
-  }
-
-  // Interleave and shuffle the results to ensure rich variety
-  const combined = shuffleArray([...pexelsWallpapers, ...pixabayWallpapers]);
+  // Curated high-resolution fallback dataset if network/offline
+  const fallbackList = generateFallbackPexelsBatch(page, perPage, category, cleanSearch).map((wp) => ({
+    ...wp,
+    id: `curated-${wp.id}-${page}`,
+    source: 'pexels' as const,
+    imageUrl: wp.thumbUrl,
+    authorProfile: wp.authorLink || 'https://www.pexels.com',
+  }));
 
   return {
-    wallpapers: combined,
-    total: Math.max(8000, combined.length * 40),
-    hasMore: combined.length > 0,
+    wallpapers: fallbackList,
+    total: 300,
+    hasMore: page < 10,
     sources: {
-      pexelsCount: pexelsWallpapers.length,
-      pixabayCount: pixabayWallpapers.length,
+      pexelsCount: fallbackList.length,
+      pixabayCount: 0,
     },
   };
 }

@@ -57,43 +57,32 @@ export const WallpaperCard: React.FC<WallpaperCardProps> = ({
     }
   };
 
-  const seoAltText = `PixelDrop - Fond d'écran ${wallpaper.category.charAt(0).toUpperCase() + wallpaper.category.slice(1)} 4K by ${wallpaper.authorName}`;
+  const seoAltText = `PixelDrop - 4K Wallpaper ${wallpaper.title} by ${wallpaper.authorName}`;
 
   return (
     <div
       id={`wallpaper-card-${wallpaper.id}`}
       onClick={() => onSelect(wallpaper)}
-      className="group relative mb-4 break-inside-avoid inline-block w-full cursor-pointer rounded-2xl overflow-hidden border border-white/[0.08] bg-zinc-900/40 backdrop-blur-md shadow-md transition-all duration-300 hover:border-white/25 hover:shadow-2xl hover:shadow-black/60 hover:-translate-y-1 touch-manipulation transform-gpu"
-      style={{
-        contentVisibility: 'auto',
-        containIntrinsicSize: `300px ${Math.round(300 * ((wallpaper.height || 9) / (wallpaper.width || 16)))}px`,
-      }}
+      className="group relative mb-3 sm:mb-4 break-inside-avoid block w-full cursor-pointer rounded-xl sm:rounded-2xl overflow-hidden border border-white/[0.07] bg-[#0f1118] transition-all duration-200 hover:border-cyan-500/40 hover:shadow-xl hover:shadow-black/70"
     >
       {/* Container with dynamic aspect-ratio based on API dimensions (Prevents Layout Shift) */}
       <div
-        className="relative w-full overflow-hidden bg-zinc-900/60"
+        className="relative w-full overflow-hidden bg-[#0c0d14]"
         style={{
           aspectRatio: `${wallpaper.width || 16} / ${wallpaper.height || 9}`,
         }}
       >
-        {/* Smooth Skeleton Loader during image download */}
-        <div
-          className={`absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-zinc-900/90 transition-opacity duration-500 ease-out z-0 pointer-events-none ${
-            isLoaded ? 'opacity-0' : 'opacity-100'
-          }`}
-          aria-hidden={isLoaded}
-        >
-          {/* Shimmering pulse background */}
-          <div className="absolute inset-0 bg-gradient-to-r from-zinc-900 via-zinc-800/40 to-zinc-900 animate-pulse" />
-
-          {/* Center placeholder icon */}
-          <div className="relative z-10 flex flex-col items-center gap-1.5 opacity-30 select-none">
-            <ImageIcon className="w-7 h-7 text-zinc-500 animate-pulse" />
-            <span className="text-[9px] font-mono uppercase tracking-widest text-zinc-500 font-semibold">
-              {wallpaper.source || '4K'}
-            </span>
+        {/* Lightweight Skeleton Loader */}
+        {!isLoaded && (
+          <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-[#11131c] z-0 pointer-events-none">
+            <div className="flex flex-col items-center gap-1.5 opacity-40 select-none">
+              <ImageIcon className="w-5 h-5 text-zinc-600 animate-pulse" />
+              <span className="text-[9px] font-mono uppercase tracking-widest text-zinc-600 font-medium">
+                {wallpaper.source || '4K'}
+              </span>
+            </div>
           </div>
-        </div>
+        )}
 
         <img
           src={imgSrc}
@@ -103,38 +92,28 @@ export const WallpaperCard: React.FC<WallpaperCardProps> = ({
           referrerPolicy="no-referrer"
           onLoad={() => setIsLoaded(true)}
           onError={handleImageError}
-          className={`w-full h-full object-cover transition-all duration-500 will-change-transform transform-gpu group-hover:scale-[1.03] ${
+          className={`w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.025] ${
             isLoaded ? 'opacity-100' : 'opacity-0'
           }`}
         />
 
-        {/* Top Floating Glass Badges - visible by default on mobile touch devices (opacity-80 md:opacity-0) and on desktop hover */}
-        <div className="absolute top-2.5 inset-x-2.5 flex items-center justify-between z-10 pointer-events-none opacity-90 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
+        {/* Top Badges */}
+        <div className="absolute top-2 inset-x-2 flex items-center justify-between z-10 pointer-events-none opacity-90 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-150">
           <div className="flex items-center gap-1.5 pointer-events-auto">
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium tracking-wide uppercase bg-black/70 backdrop-blur-md text-zinc-300 border border-white/10">
+            <span className="px-2 py-0.5 rounded-md text-[10px] font-medium tracking-wide uppercase bg-black/80 text-zinc-300 border border-white/10">
               {wallpaper.category}
             </span>
-            <span
-              className={`px-1.5 py-0.5 rounded-md text-[9px] font-mono uppercase font-bold border backdrop-blur-md ${
-                wallpaper.source === 'wallhaven'
-                  ? 'bg-purple-500/25 text-purple-300 border-purple-500/40'
-                  : wallpaper.source === 'unsplash'
-                  ? 'bg-amber-500/25 text-amber-300 border-amber-500/40'
-                  : wallpaper.source === 'pixabay'
-                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                  : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
-              }`}
-            >
-              {wallpaper.source}
+            <span className="px-1.5 py-0.5 rounded-md text-[9px] font-mono uppercase font-bold bg-black/80 text-cyan-300 border border-cyan-500/20">
+              {wallpaper.width >= 3840 ? '4K UHD' : wallpaper.width >= 2560 ? '2K QHD' : 'Full HD'}
             </span>
           </div>
 
           <button
             onClick={(e) => onToggleFavorite(wallpaper.id, e)}
-            className={`p-2 sm:p-1.5 rounded-full backdrop-blur-md transition-all pointer-events-auto cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center ${
+            className={`p-2 rounded-full transition-all pointer-events-auto cursor-pointer flex items-center justify-center shadow-md ${
               isFavorite
-                ? 'bg-rose-500 text-white shadow-md'
-                : 'bg-black/60 text-zinc-300 hover:text-rose-400 hover:bg-black/80 border border-white/10'
+                ? 'bg-rose-500 text-white'
+                : 'bg-black/75 text-zinc-300 hover:text-rose-400 hover:bg-black border border-white/10'
             }`}
             title={isFavorite ? 'Remove from favorites' : 'Save wallpaper'}
             aria-label="Favorite wallpaper"
@@ -143,15 +122,15 @@ export const WallpaperCard: React.FC<WallpaperCardProps> = ({
           </button>
         </div>
 
-        {/* Subtle Dark Gradient Overlay with Photographer Name and Quick Download Icon */}
-        <div className="absolute inset-x-0 bottom-0 p-2.5 sm:p-3 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-90 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-between text-white z-10">
+        {/* Bottom Information Overlay */}
+        <div className="absolute inset-x-0 bottom-0 p-2.5 sm:p-3 bg-gradient-to-t from-black/95 via-black/60 to-transparent opacity-95 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 flex items-end justify-between text-white z-10">
           <div className="flex-1 pr-2 min-w-0">
-            <p className="text-xs font-semibold truncate text-zinc-100 drop-shadow-sm">
+            <p className="text-xs font-medium truncate text-zinc-100">
               {wallpaper.title}
             </p>
-            <div className="flex items-center gap-1 text-[11px] text-zinc-400 font-light truncate">
-              <span>{wallpaper.source === 'wallhaven' ? 'Art by' : 'Photo by'}</span>
-              <span className="font-medium text-zinc-200 truncate">
+            <div className="flex items-center gap-1 text-[11px] text-zinc-400 truncate">
+              <span>by</span>
+              <span className="font-normal text-zinc-200 truncate">
                 {wallpaper.authorName}
               </span>
               {(wallpaper.authorProfile || wallpaper.authorLink) && (
@@ -160,8 +139,8 @@ export const WallpaperCard: React.FC<WallpaperCardProps> = ({
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className="text-zinc-400 hover:text-white transition-colors"
-                  title={`Photographer profile on ${wallpaper.source}`}
+                  className="text-zinc-500 hover:text-white transition-colors"
+                  title="Author profile"
                 >
                   <ExternalLink className="w-2.5 h-2.5" />
                 </a>
@@ -169,15 +148,15 @@ export const WallpaperCard: React.FC<WallpaperCardProps> = ({
             </div>
           </div>
 
-          {/* Quick Download Icon Button (Enhanced 40px touch-friendly hit area on mobile) */}
+          {/* Quick Download Button */}
           <button
             onClick={handleQuickDownload}
-            className={`p-2.5 sm:p-2 rounded-xl backdrop-blur-md border transition-all shrink-0 cursor-pointer min-w-[38px] min-h-[38px] flex items-center justify-center ${
+            className={`p-2 rounded-lg border transition-colors shrink-0 cursor-pointer flex items-center justify-center ${
               quickDownloading
-                ? 'bg-emerald-500/80 border-emerald-400 text-white'
-                : 'bg-white/15 hover:bg-white/25 active:bg-white/35 border-white/20 text-white hover:scale-105 active:scale-95'
+                ? 'bg-emerald-500 border-emerald-400 text-white'
+                : 'bg-black/80 hover:bg-cyan-500 hover:text-black border-white/15 text-white active:scale-95'
             }`}
-            title="Quick download 4K Ultra HD (Max Quality)"
+            title="Download 4K Ultra HD"
             aria-label="Quick download 4K wallpaper"
           >
             {quickDownloading ? (

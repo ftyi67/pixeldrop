@@ -1,22 +1,18 @@
 import React from 'react';
-import { Droplets, ShieldCheck, Heart, Layers, ExternalLink, Sparkles, Mail, FileText, Scale, BookOpen } from 'lucide-react';
+import { Droplets, ShieldCheck, Heart, Layers, ExternalLink, Sparkles, Mail, FileText, Scale } from 'lucide-react';
 import { WallpaperCategory } from '../types';
 
 export type LegalTab = 'privacy' | 'terms' | 'dmca' | 'contact';
 
 interface FooterProps {
   onSelectCategory?: (category: WallpaperCategory) => void;
-  onOpenGradient?: () => void;
   onOpenFavorites?: () => void;
-  onOpenArticles?: () => void;
   onOpenLegal?: (tab: LegalTab) => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
   onSelectCategory,
-  onOpenGradient,
   onOpenFavorites,
-  onOpenArticles,
   onOpenLegal,
 }) => {
   const currentYear = new Date().getFullYear();
@@ -30,34 +26,34 @@ export const Footer: React.FC<FooterProps> = ({
   };
 
   return (
-    <footer id="global-footer" className="w-full mt-16 border-t border-white/[0.08] bg-zinc-950/90 backdrop-blur-2xl text-zinc-400 text-xs relative z-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
+    <footer id="global-footer" className="w-full mt-16 border-t border-white/[0.08] bg-[#090b10] text-zinc-400 text-xs relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
         {/* Top Footer 4-Column Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Col 1: Brand & Consumer Mission */}
-          <div className="space-y-3.5">
+          <div className="space-y-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-600 to-cyan-400 p-0.5 shadow-md shadow-indigo-500/20">
-                <div className="w-full h-full bg-zinc-950 rounded-[10px] flex items-center justify-center">
-                  <Droplets className="w-4 h-4 text-cyan-300" />
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-600 to-cyan-400 p-0.5 shadow-md shadow-cyan-500/20">
+                <div className="w-full h-full bg-[#0a0c12] rounded-[10px] flex items-center justify-center">
+                  <Droplets className="w-4 h-4 text-cyan-400" />
                 </div>
               </div>
-              <span className="font-extrabold text-white text-base tracking-tight font-['Space_Grotesk',sans-serif]">
+              <span className="font-bold text-white text-base tracking-tight font-['Space_Grotesk',sans-serif]">
                 Pixel<span className="text-cyan-400">Drop</span>
               </span>
             </div>
             <p className="text-[11px] text-zinc-400 leading-relaxed font-light">
-              Your destination for free 4K and Ultra HD wallpapers. Discover thousands of curated backgrounds for Mobile, PC, and Tablet with instant resolution cropping and live CSS gradient studio.
+              Your destination for free 4K and Ultra HD wallpapers. Discover curated backgrounds for Mobile, PC, and Tablet with instant resolution cropping and direct downloads.
             </p>
             <div className="flex items-center gap-2 pt-1 text-[10px] font-mono text-zinc-400">
-              <span className="px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10 text-cyan-300 font-semibold">
+              <span className="px-2 py-0.5 rounded bg-white/[0.04] border border-white/10 text-cyan-300 font-semibold">
                 Ultra HD 4K
               </span>
-              <span className="px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10 text-emerald-400 font-semibold">
+              <span className="px-2 py-0.5 rounded bg-white/[0.04] border border-white/10 text-emerald-400 font-semibold">
                 100% Free
               </span>
-              <span className="px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10 text-purple-300 font-semibold">
-                Raw Quality
+              <span className="px-2 py-0.5 rounded bg-white/[0.04] border border-white/10 text-purple-300 font-semibold">
+                RAW Quality
               </span>
             </div>
           </div>
@@ -102,7 +98,7 @@ export const Footer: React.FC<FooterProps> = ({
               </li>
               <li>
                 <button
-                  onClick={() => onSelectCategory?.('dark')}
+                  onClick={() => onSelectCategory?.('amoled')}
                   className="hover:text-white transition-colors cursor-pointer text-left"
                 >
                   AMOLED Deep Black
@@ -122,7 +118,7 @@ export const Footer: React.FC<FooterProps> = ({
           {/* Col 3: Discovery & Tools */}
           <div>
             <h4 className="font-semibold text-white text-xs mb-3.5 uppercase tracking-wider">
-              Explore & Tools
+              Explore & Saved
             </h4>
             <ul className="space-y-2 text-[11px]">
               <li>
@@ -132,24 +128,6 @@ export const Footer: React.FC<FooterProps> = ({
                 >
                   <Sparkles className="w-3 h-3 text-amber-400" />
                   Trending Wallpapers
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onOpenArticles?.()}
-                  className="hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-cyan-300"
-                >
-                  <BookOpen className="w-3 h-3 text-cyan-400" />
-                  Articles & Guides 4K (SEO)
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onOpenGradient?.()}
-                  className="hover:text-white transition-colors cursor-pointer flex items-center gap-1.5"
-                >
-                  <Layers className="w-3 h-3 text-indigo-400" />
-                  CSS Gradient Studio
                 </button>
               </li>
               <li>

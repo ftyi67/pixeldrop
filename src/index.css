@@ -11,14 +11,9 @@
 }
 
 html {
-  /* Prevent horizontal bounce and jitter on mobile browsers */
   overflow-x: hidden;
-  /* Native-like momentum scrolling for iOS and Android WebViews */
   -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
-  /* Prevent tap highlight flicker on Android and iPhone */
   -webkit-tap-highlight-color: transparent;
-  /* Improve text rendering smoothness */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -27,9 +22,8 @@ html {
 body {
   overflow-x: hidden;
   min-height: 100vh;
-  min-height: 100dvh; /* Dynamic viewport height for Android & iOS address bars */
-  /* Prevent pull-to-refresh reload interruptions on mobile apps while scrolling */
-  overscroll-behavior-y: none;
+  min-height: 100dvh;
+  background-color: #08090d;
 }
 
 /* Safe area utilities for iPhone notch, dynamic island, and home indicator */

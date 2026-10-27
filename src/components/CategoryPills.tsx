@@ -93,53 +93,39 @@ export const CategoryPills: React.FC<CategoryPillsProps> = ({
   };
 
   return (
-    <div className="w-full space-y-3.5">
-      {/* Category Pills Slider in Ultra-Modern Frosted Glass */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none no-scrollbar touch-pan-x [-webkit-overflow-scrolling:touch] overscroll-x-contain select-none">
+    <div className="w-full space-y-3">
+      {/* Category Pills Slider */}
+      <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-none no-scrollbar touch-pan-x [-webkit-overflow-scrolling:touch] select-none">
         {CATEGORY_ITEMS.map((cat) => {
           const isActive = selectedCategory === cat.id;
-          const isWallhavenSource = cat.sourceLabel === 'Wallhaven';
 
           return (
             <button
               key={cat.id}
               id={`cat-pill-${cat.id}`}
               onClick={() => onSelectCategory(cat.id)}
-              className={`px-3.5 py-2.5 sm:py-2 rounded-2xl text-xs font-semibold whitespace-nowrap flex items-center gap-2 transition-all duration-200 shrink-0 cursor-pointer backdrop-blur-md touch-manipulation active:scale-95 ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer border ${
                 isActive
-                  ? isWallhavenSource
-                    ? 'bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 text-white shadow-lg shadow-purple-500/25 border border-purple-400/50 scale-105 ring-2 ring-purple-500/30'
-                    : 'bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/25 border border-indigo-400/40 scale-105'
-                  : 'bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12] text-zinc-300 hover:text-white border border-white/[0.08]'
+                  ? 'bg-cyan-500 text-black border-cyan-400 font-semibold shadow-sm'
+                  : 'bg-[#10121a] hover:bg-[#161824] text-zinc-300 hover:text-white border-white/[0.08]'
               }`}
             >
               {getIcon(cat.icon)}
               <span>{cat.label}</span>
-              {isWallhavenSource && (
-                <span
-                  className={`text-[9px] px-1.5 py-0.2 rounded-md font-mono tracking-tight ${
-                    isActive
-                      ? 'bg-white/20 text-white'
-                      : 'bg-purple-500/15 text-purple-300 border border-purple-500/20'
-                  }`}
-                >
-                  Wallhaven
-                </span>
-              )}
             </button>
           );
         })}
       </div>
 
-      {/* Sub-Bar: Orientation Filters + Dual API Live Status */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-0.5 text-xs">
+      {/* Sub-Bar: Orientation Segmented Filter */}
+      <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
         {/* Orientation Switcher */}
-        <div className="flex items-center gap-1 bg-white/[0.03] backdrop-blur-md p-1 rounded-2xl border border-white/[0.08]">
+        <div className="flex items-center gap-1 bg-[#10121a] p-1 rounded-xl border border-white/[0.08]">
           <button
             onClick={() => onChangeOrientation('all')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
               orientation === 'all'
-                ? 'bg-white/10 text-white font-semibold shadow-xs'
+                ? 'bg-white/10 text-white font-semibold'
                 : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
@@ -147,20 +133,20 @@ export const CategoryPills: React.FC<CategoryPillsProps> = ({
           </button>
           <button
             onClick={() => onChangeOrientation('landscape')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
               orientation === 'landscape'
-                ? 'bg-white/10 text-white font-semibold shadow-xs'
+                ? 'bg-white/10 text-white font-semibold'
                 : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
-            <Monitor className="w-3 h-3 text-indigo-400" />
+            <Monitor className="w-3 h-3 text-cyan-400" />
             Desktop 16:9
           </button>
           <button
             onClick={() => onChangeOrientation('portrait')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
               orientation === 'portrait'
-                ? 'bg-white/10 text-white font-semibold shadow-xs'
+                ? 'bg-white/10 text-white font-semibold'
                 : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
@@ -169,19 +155,9 @@ export const CategoryPills: React.FC<CategoryPillsProps> = ({
           </button>
         </div>
 
-        {/* Right Status Badges: Dual API Proxy Indicators */}
-        <div className="flex items-center gap-2.5">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-md text-xs text-zinc-300">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="font-mono text-[11px] flex items-center gap-1.5">
-              <Database className="w-3 h-3 text-indigo-400" />
-              <span>Dual API: Pexels & Wallhaven SFW</span>
-            </span>
-          </div>
-
-          <div className="px-3 py-1.5 rounded-xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-md text-[11px] text-zinc-400 font-mono">
-            <strong>{totalCount}</strong> Wallpapers Active
-          </div>
+        {/* Count Label */}
+        <div className="text-[11px] text-zinc-500 font-mono">
+          Showing 4K & Ultra HD Backgrounds
         </div>
       </div>
     </div>
