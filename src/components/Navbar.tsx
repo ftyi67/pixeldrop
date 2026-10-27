@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import {
   Search,
-  Layers,
   Heart,
   ShieldCheck,
   Code2,
   X,
-  Droplets,
   Sun,
   Moon,
   Monitor,
+  Compass,
+  DownloadCloud,
 } from 'lucide-react';
 import { ThemePreference, ActiveTheme } from '../hooks/useSystemTheme';
 
@@ -46,7 +46,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   // Keyboard shortcut '/' to focus search input
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+      if (
+        e.key === '/' &&
+        document.activeElement?.tagName !== 'INPUT' &&
+        document.activeElement?.tagName !== 'TEXTAREA'
+      ) {
         e.preventDefault();
         const searchInput = document.getElementById('search-wallpapers-input');
         searchInput?.focus();
@@ -59,48 +63,45 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header
       id="main-navigation-header"
-      className="sticky top-0 z-40 w-full border-b border-white/[0.08] bg-[#08090d]/95 backdrop-blur-md transition-colors duration-200 safe-top"
+      className="sticky top-0 z-40 w-full border-b border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-[#121319]/90 backdrop-blur-md transition-colors duration-200 safe-top"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-        {/* Logo & PixelDrop Brand */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3 sm:gap-6">
+        {/* Pexels / 4KWallpapers Style Clean Brand */}
         <div
-          onClick={() => setActiveTab('wallpapers')}
-          className="flex items-center gap-3 cursor-pointer group shrink-0"
+          onClick={() => {
+            setActiveTab('wallpapers');
+            setSearchQuery('');
+          }}
+          className="flex items-center gap-2.5 cursor-pointer group shrink-0 select-none"
         >
-          <div className="relative w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-600 to-cyan-400 p-0.5 shadow-md shadow-cyan-500/20 group-hover:scale-105 transition-transform">
-            <div className="w-full h-full bg-[#0a0c12] rounded-[10px] flex items-center justify-center relative overflow-hidden">
-              <Droplets className="w-4 h-4 text-cyan-400 relative z-10" />
-            </div>
+          {/* Minimalist Logo Mark */}
+          <div className="w-8 h-8 rounded-lg bg-emerald-500 dark:bg-emerald-500 flex items-center justify-center text-white shadow-sm shadow-emerald-500/20 group-hover:scale-105 transition-transform">
+            <DownloadCloud className="w-4 h-4 stroke-[2.2]" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-base tracking-tight text-white font-['Space_Grotesk',sans-serif]">
-                Pixel<span className="text-cyan-400">Drop</span>
-              </span>
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-mono tracking-wider uppercase bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-bold">
-                4K PRO
-              </span>
-            </div>
-            <p className="text-[10px] text-zinc-400 hidden sm:block">
-              Ultra HD Wallpaper Studio
-            </p>
+          <div className="flex items-center gap-1.5">
+            <span className="font-bold text-lg tracking-tight text-zinc-900 dark:text-white font-['Plus_Jakarta_Sans',sans-serif]">
+              Pixel<span className="text-emerald-500 dark:text-emerald-400">Drop</span>
+            </span>
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider uppercase bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
+              4K
+            </span>
           </div>
         </div>
 
-        {/* Global Search Bar */}
-        <div className="flex-1 max-w-md hidden md:block">
+        {/* Pexels Style Centered Clean Search Bar */}
+        <div className="flex-1 max-w-xl hidden md:block">
           <div
-            className={`relative flex items-center rounded-xl bg-[#10121a] border transition-all ${
+            className={`relative flex items-center rounded-full transition-all duration-200 ${
               isSearchFocused
-                ? 'border-cyan-500/60 ring-2 ring-cyan-500/20 shadow-md shadow-cyan-500/10'
-                : 'border-white/[0.08] hover:border-white/20'
+                ? 'bg-white dark:bg-[#1a1c24] ring-2 ring-emerald-500/40 shadow-sm border border-emerald-500/50'
+                : 'bg-zinc-100 dark:bg-[#1a1c24] border border-transparent hover:border-zinc-300 dark:hover:border-zinc-700'
             }`}
           >
-            <Search className="w-4 h-4 text-zinc-500 ml-3.5 shrink-0" />
+            <Search className="w-4 h-4 text-zinc-400 dark:text-zinc-500 ml-4 shrink-0" />
             <input
               id="search-wallpapers-input"
               type="text"
-              placeholder="Search nature, cyberpunk, minimalist, anime, 4K..."
+              placeholder="Search free 4K wallpapers, anime, nature, dark setups..."
               value={searchQuery}
               onFocus={() => {
                 setIsSearchFocused(true);
@@ -108,70 +109,65 @@ export const Navbar: React.FC<NavbarProps> = ({
               }}
               onBlur={() => setIsSearchFocused(false)}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-transparent px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none"
+              className="w-full bg-transparent px-3 py-2 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none"
             />
             {searchQuery ? (
               <button
                 onClick={() => setSearchQuery('')}
-                className="mr-3 p-1 rounded text-zinc-400 hover:text-white"
+                className="mr-3 p-1 rounded-full text-zinc-400 hover:text-zinc-600 dark:hover:text-white transition-colors"
                 title="Clear search"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
               </button>
             ) : (
-              <span className="mr-3 text-[10px] font-mono text-zinc-500 border border-white/10 px-1.5 py-0.5 rounded bg-white/[0.02]">
+              <span className="mr-3 text-[11px] font-mono text-zinc-400 dark:text-zinc-500 border border-zinc-200 dark:border-zinc-700/60 px-1.5 py-0.5 rounded bg-zinc-200/50 dark:bg-zinc-800/50">
                 /
               </span>
             )}
           </div>
         </div>
 
-        {/* Navigation Tabs & Controls */}
+        {/* Navigation Actions */}
         <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Wallpapers Tab */}
+          {/* Explore / Wallpapers Tab */}
           <button
             id="nav-tab-wallpapers"
             onClick={() => setActiveTab('wallpapers')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
+            className={`px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
               activeTab === 'wallpapers'
-                ? 'bg-cyan-500 text-black font-semibold shadow-md shadow-cyan-500/20'
-                : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+                ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 shadow-sm'
+                : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800/60'
             }`}
           >
-            <Layers className="w-3.5 h-3.5" />
-            <span>Discover</span>
+            <Compass className="w-3.5 h-3.5" />
+            <span>Explore</span>
           </button>
 
           {/* Favorites Tab */}
           <button
             id="nav-tab-favorites"
             onClick={() => setActiveTab('favorites')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors relative cursor-pointer ${
+            className={`px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all relative cursor-pointer ${
               activeTab === 'favorites'
-                ? 'bg-cyan-500 text-black font-semibold shadow-md shadow-cyan-500/20'
-                : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+                ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 shadow-sm'
+                : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800/60'
             }`}
             title="Saved Wallpapers"
           >
-            <Heart className={`w-3.5 h-3.5 ${favoritesCount > 0 ? 'text-rose-400 fill-rose-400' : ''}`} />
-            <span className="hidden sm:inline">Favorites</span>
+            <Heart
+              className={`w-3.5 h-3.5 ${
+                favoritesCount > 0 ? 'text-rose-500 fill-rose-500' : ''
+              }`}
+            />
+            <span className="hidden sm:inline">Saved</span>
             {favoritesCount > 0 && (
-              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-rose-500 text-white font-bold">
+              <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-rose-500 text-white font-bold">
                 {favoritesCount}
               </span>
             )}
           </button>
 
-          <div className="w-px h-4 bg-white/10 mx-1 hidden sm:block" />
-
-          {/* Architecture Modal */}
-          <button
-            onClick={onOpenNextjsModal}
-            className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.04] transition-colors cursor-pointer"
-            title="App Architecture & Stack"
-          >
-            <Code2 className="w-4 h-4" />
-          </button>
+          <div className="w-px h-4 bg-zinc-200 dark:bg-zinc-800 mx-1 hidden sm:block" />
 
           {/* Theme Switcher */}
           <div className="relative">
@@ -182,20 +178,26 @@ export const Navbar: React.FC<NavbarProps> = ({
                 e.preventDefault();
                 setShowThemeMenu((prev) => !prev);
               }}
-              className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.04] transition-colors cursor-pointer relative"
-              title={`Theme: ${themePreference === 'system' ? 'System (Auto)' : themePreference === 'dark' ? 'Dark' : 'Light'}`}
+              className="p-2 rounded-full text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer"
+              title={`Theme: ${
+                themePreference === 'system'
+                  ? 'System'
+                  : themePreference === 'dark'
+                  ? 'Dark'
+                  : 'Light'
+              }`}
               aria-label="Toggle dark/light mode"
             >
               {resolvedTheme === 'dark' ? (
-                <Moon className="w-4 h-4 text-cyan-300" />
+                <Moon className="w-4 h-4 text-emerald-400" />
               ) : (
-                <Sun className="w-4 h-4 text-amber-400" />
+                <Sun className="w-4 h-4 text-amber-500" />
               )}
             </button>
 
             {showThemeMenu && (
               <div
-                className="absolute right-0 mt-2 w-36 py-1 bg-[#10121a] border border-white/10 rounded-xl shadow-xl z-50 text-xs text-zinc-300"
+                className="absolute right-0 mt-2 w-36 py-1 bg-white dark:bg-[#1a1c24] border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl z-50 text-xs text-zinc-700 dark:text-zinc-300"
                 onMouseLeave={() => setShowThemeMenu(false)}
               >
                 <button
@@ -203,7 +205,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     onSetThemePreference?.('system');
                     setShowThemeMenu(false);
                   }}
-                  className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-white/[0.06] transition-colors"
+                  className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                 >
                   <Monitor className="w-3.5 h-3.5" />
                   <span>System (OS)</span>
@@ -213,7 +215,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     onSetThemePreference?.('dark');
                     setShowThemeMenu(false);
                   }}
-                  className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-white/[0.06] transition-colors"
+                  className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                 >
                   <Moon className="w-3.5 h-3.5" />
                   <span>Dark Mode</span>
@@ -223,7 +225,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     onSetThemePreference?.('light');
                     setShowThemeMenu(false);
                   }}
-                  className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-white/[0.06] transition-colors"
+                  className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                 >
                   <Sun className="w-3.5 h-3.5" />
                   <span>Light Mode</span>
@@ -232,10 +234,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </div>
 
+          {/* Architecture Modal */}
+          <button
+            onClick={onOpenNextjsModal}
+            className="p-2 rounded-full text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer"
+            title="App Architecture & Stack"
+          >
+            <Code2 className="w-4 h-4" />
+          </button>
+
           {/* Privacy & AdSense Modal */}
           <button
             onClick={onOpenPrivacyModal}
-            className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.04] transition-colors cursor-pointer"
+            className="p-2 rounded-full text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer"
             title="Privacy & Legal"
           >
             <ShieldCheck className="w-4 h-4" />
@@ -245,20 +256,23 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Mobile Search Bar */}
       <div className="px-4 pb-3 md:hidden">
-        <div className="relative flex items-center rounded-xl bg-[#10121a] border border-white/[0.08]">
-          <Search className="w-4 h-4 text-zinc-500 ml-3.5 shrink-0" />
+        <div className="relative flex items-center rounded-full bg-zinc-100 dark:bg-[#1a1c24] border border-zinc-200 dark:border-zinc-800">
+          <Search className="w-4 h-4 text-zinc-400 dark:text-zinc-500 ml-3.5 shrink-0" />
           <input
             type="text"
-            placeholder="Search wallpapers (nature, anime, 4K)..."
+            placeholder="Search 4K wallpapers..."
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
               if (activeTab !== 'wallpapers') setActiveTab('wallpapers');
             }}
-            className="w-full bg-transparent px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none"
+            className="w-full bg-transparent px-3 py-2 text-xs text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none"
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery('')} className="mr-3 text-zinc-400">
+            <button
+              onClick={() => setSearchQuery('')}
+              className="mr-3 text-zinc-400 hover:text-zinc-600 dark:hover:text-white"
+            >
               <X className="w-3.5 h-3.5" />
             </button>
           )}

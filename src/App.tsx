@@ -221,8 +221,8 @@ export default function App() {
   return (
     <div
       className={`min-h-screen ${
-        isDark ? 'bg-[#08090d] text-[#f1f5f9]' : 'bg-slate-50 text-slate-900'
-      } flex flex-col font-['Outfit',sans-serif]`}
+        isDark ? 'bg-[#121319] text-zinc-100' : 'bg-[#fafafa] text-zinc-900'
+      } flex flex-col font-['Plus_Jakarta_Sans',sans-serif] transition-colors`}
     >
       {/* Navigation Bar */}
       <Navbar
@@ -252,7 +252,7 @@ export default function App() {
       </div>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-3 space-y-5 relative z-10">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-3 space-y-4 relative z-10">
         {/* Wallpapers Discovery View */}
         {activeTab === 'wallpapers' && (
           <>
@@ -302,21 +302,21 @@ export default function App() {
 
             {/* Active Search Banner */}
             {searchQuery && (
-              <div className="flex items-center justify-between p-3 rounded-xl bg-[#10121a] border border-white/[0.08] text-xs text-zinc-300">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-100 dark:bg-[#1a1c24] border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-700 dark:text-zinc-300">
                 <div className="flex items-center gap-2">
-                  <Search className="w-3.5 h-3.5 text-cyan-400" />
+                  <Search className="w-3.5 h-3.5 text-emerald-500" />
                   <span>
                     Searching 4K wallpapers for &ldquo;
-                    <strong className="text-white font-semibold">{searchQuery}</strong>
+                    <strong className="text-zinc-900 dark:text-white font-semibold">{searchQuery}</strong>
                     &rdquo;
                   </span>
                 </div>
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="text-cyan-400 hover:text-cyan-300 hover:underline font-semibold cursor-pointer flex items-center gap-1"
+                  className="text-emerald-600 dark:text-emerald-400 hover:underline font-semibold cursor-pointer flex items-center gap-1"
                 >
                   <X className="w-3.5 h-3.5" />
-                  <span>Clear</span>
+                  <span>Clear search</span>
                 </button>
               </div>
             )}
@@ -326,21 +326,21 @@ export default function App() {
         {/* Favorites Header View */}
         {activeTab === 'favorites' && (
           <div className="py-4 space-y-3">
-            <div className="p-4 rounded-xl bg-[#10121a] border border-white/[0.08] flex items-center justify-between">
-              <div className="flex items-center gap-2.5 text-white font-semibold text-sm">
+            <div className="p-4 rounded-xl bg-zinc-100 dark:bg-[#1a1c24] border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+              <div className="flex items-center gap-2.5 text-zinc-900 dark:text-white font-semibold text-sm">
                 <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
                 <span>Your Saved Wallpapers ({favorites.length})</span>
               </div>
               <button
                 onClick={() => setActiveTab('wallpapers')}
-                className="text-xs text-cyan-400 hover:text-cyan-300 hover:underline cursor-pointer font-medium"
+                className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer font-medium"
               >
-                ← Back to Discover
+                ← Back to Wallpapers
               </button>
             </div>
             {favorites.length === 0 && (
               <div className="py-16 text-center text-zinc-500 text-xs">
-                You haven&apos;t saved any wallpapers yet. Click the heart icon on any wallpaper to add it here.
+                You haven&apos;t saved any wallpapers yet. Hover on any wallpaper and click the heart icon to save it.
               </div>
             )}
           </div>
