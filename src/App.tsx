@@ -86,10 +86,11 @@ export default function App() {
   // Initial and Category/Search/Color/Resolution load
   const loadInitialWallpapers = useCallback(async () => {
     setIsLoadingMore(true);
+    const batchSize = typeof window !== 'undefined' && window.innerWidth < 768 ? 18 : 24;
     try {
       const res = await fetchAggregatedWallpapers(
         1,
-        30,
+        batchSize,
         selectedCategory,
         debouncedSearch,
         selectedColor !== 'all' ? selectedColor : undefined,
@@ -117,11 +118,12 @@ export default function App() {
     if (isLoadingMore || !hasMore) return;
     setIsLoadingMore(true);
     const nextPage = page + 1;
+    const batchSize = typeof window !== 'undefined' && window.innerWidth < 768 ? 18 : 24;
 
     try {
       const res = await fetchAggregatedWallpapers(
         nextPage,
-        30,
+        batchSize,
         selectedCategory,
         debouncedSearch,
         selectedColor !== 'all' ? selectedColor : undefined,

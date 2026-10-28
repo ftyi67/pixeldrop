@@ -93,7 +93,7 @@ export function mapPexelsPhotoToWallpaper(
     title: cleanTitle,
     category: category === 'all' ? 'nature' : category,
     fullUrl: photo.src.original,
-    thumbUrl: photo.src.large2x || photo.src.large || photo.src.medium,
+    thumbUrl: photo.src.medium || photo.src.small || photo.src.large || photo.src.original,
     authorLink: authorProfile,
     photographerId: photo.photographer_id,
     tags: Array.from(tagsSet),

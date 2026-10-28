@@ -42,6 +42,7 @@ export const MasonryGrid: React.FC<MasonryGridProps> = ({
     const sentinel = sentinelRef.current;
     if (!sentinel || !hasMore) return;
 
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && !loadingRef.current) {
@@ -50,7 +51,7 @@ export const MasonryGrid: React.FC<MasonryGridProps> = ({
       },
       {
         root: null,
-        rootMargin: '800px 0px',
+        rootMargin: isMobile ? '400px 0px' : '800px 0px',
         threshold: 0,
       }
     );

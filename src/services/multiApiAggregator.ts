@@ -120,7 +120,7 @@ export function normalizePexels(
     title: cleanTitle,
     category,
     fullUrl: photo.src.original || imageUrl,
-    thumbUrl: photo.src.large || photo.src.medium || imageUrl,
+    thumbUrl: photo.src.medium || photo.src.small || photo.src.large || imageUrl,
     authorLink: photo.photographer_url,
     photographerId: photo.photographer_id,
     tags: Array.from(tagsSet),

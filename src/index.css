@@ -89,3 +89,27 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* 
+ * High-Performance Mobile Content Visibility & CSS Containment
+ * Skips off-screen layout and paint to save CPU/GPU RAM and battery on mobile
+ */
+.wallpaper-card-contain {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 280px;
+  contain: layout style paint;
+}
+
+@media (max-width: 768px) {
+  /* Disable expensive backdrop-blur on phones to eliminate GPU frame drops during scroll */
+  .mobile-no-blur {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  
+  /* Smoother touch scrolling on mobile devices */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+

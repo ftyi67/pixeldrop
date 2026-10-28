@@ -63,7 +63,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header
       id="main-navigation-header"
-      className="sticky top-0 z-40 w-full border-b border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-[#121319]/90 backdrop-blur-md transition-colors duration-200 safe-top"
+      className="sticky top-0 z-40 w-full border-b border-zinc-200/80 dark:border-zinc-800/80 bg-white/95 dark:bg-[#121319]/95 md:backdrop-blur-md transition-colors duration-200 safe-top"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3 sm:gap-6">
         {/* Pexels / 4KWallpapers Style Clean Brand */}
