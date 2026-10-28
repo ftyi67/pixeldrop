@@ -496,6 +496,11 @@ async function startServer() {
     res.type('text/html').send('google-site-verification: google38525e8d8e7f1155.html');
   });
 
+  // Google AdSense ads.txt endpoint
+  app.get('/ads.txt', (req, res) => {
+    res.type('text/plain').send('google.com, pub-7012260166484402, DIRECT, f08c47fec0942fa0\n');
+  });
+
   // Health check endpoint
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', hasPexelsKey: Boolean(process.env.PEXELS_API_KEY) });
