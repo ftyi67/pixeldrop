@@ -20,6 +20,9 @@ import {
   Keyboard,
   ChevronDown,
   ShieldCheck,
+  Laptop,
+  Terminal,
+  HelpCircle,
 } from 'lucide-react';
 import { Wallpaper, DownloadResolution } from '../types';
 import { AdSensePlaceholder } from './AdSensePlaceholder';
@@ -80,9 +83,20 @@ export const WallpaperModal: React.FC<WallpaperModalProps> = ({
   const [downloadingRes, setDownloadingRes] = useState<DownloadResolution | null>(null);
   const [downloadStatus, setDownloadStatus] = useState<string>('');
   const [copiedLink, setCopiedLink] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareFeedback, setShareFeedback] = useState<string | null>(null);
+  const [hasWebShare, setHasWebShare] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [modalImgSrc, setModalImgSrc] = useState(wallpaper?.fullUrl || wallpaper?.url || wallpaper?.imageUrl || '');
   const [showResDropdown, setShowResDropdown] = useState(false);
+  const [showDesktopModal, setShowDesktopModal] = useState(false);
+  const [isSettingPhone, setIsSettingPhone] = useState(false);
+  const [phoneActionFeedback, setPhoneActionFeedback] = useState<string | null>(null);
+  const [desktopActionFeedback, setDesktopActionFeedback] = useState<string | null>(null);
+
+  useEffect(() => {
+    setHasWebShare(typeof navigator !== 'undefined' && typeof navigator.share === 'function');
+  }, []);
 
   // Slideshow Mode State
   const [isSlideshowActive, setIsSlideshowActive] = useState(false);
@@ -291,12 +305,226 @@ export const WallpaperModal: React.FC<WallpaperModalProps> = ({
     }
   };
 
-  const handleCopyShareLink = () => {
+  const handleShare = async () => {
+    if (!wallpaper) return;
     const shareUrl = `${window.location.origin}?wallpaper=${wallpaper.id}`;
-    navigator.clipboard.writeText(shareUrl).then(() => {
+    const shareTitle = wallpaper.title ? `${wallpaper.title} - 4K Wallpaper` : '4K Wallpaper on PixelDrop';
+    const shareText = `Check out "${wallpaper.title || '4K Wallpaper'}" by ${wallpaper.authorName} on PixelDrop!`;
+
+    // 1. Try Web Share API (native mobile share sheet with "Use as Wallpaper" / "Add to Home Screen")
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      setIsSharing(true);
+      setShareFeedback('Opening share sheet...');
+
+      try {
+        let fileShared = false;
+        const imgUrl = wallpaper.imageUrl || wallpaper.thumbnail || wallpaper.url;
+
+        // On mobile devices, try creating a File object if navigator.canShare({ files }) is supported
+        // Sharing a File directly prompts native OS actions like "Use as Wallpaper" on iOS and Android
+        if (typeof navigator.canShare === 'function' && imgUrl) {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 2000);
+            const response = await fetch(imgUrl, {
+              signal: controller.signal,
+              cache: 'force-cache',
+            });
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+              const blob = await response.blob();
+              const ext = blob.type.includes('png') ? 'png' : 'jpg';
+              const file = new File([blob], `wallpaper-${wallpaper.id}.${ext}`, {
+                type: blob.type || 'image/jpeg',
+              });
+
+              if (navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                  title: shareTitle,
+                  text: shareText,
+                  url: shareUrl,
+                  files: [file],
+                });
+                fileShared = true;
+                setShareFeedback('Shared successfully!');
+                setTimeout(() => setShareFeedback(null), 2500);
+                return;
+              }
+            }
+          } catch (fileErr: any) {
+            // If file fetch/check fails, continue to text/URL share below
+            if (fileErr?.name === 'AbortError') {
+              // Could be timeout or user cancel
+            }
+          }
+        }
+
+        if (!fileShared) {
+          await navigator.share({
+            title: shareTitle,
+            text: shareText,
+            url: shareUrl,
+          });
+          setShareFeedback('Shared successfully!');
+          setTimeout(() => setShareFeedback(null), 2500);
+          return;
+        }
+      } catch (err: any) {
+        if (err?.name === 'AbortError') {
+          // User dismissed or canceled the share sheet
+          setShareFeedback(null);
+          return;
+        }
+        console.warn('Web Share failed, falling back to clipboard:', err);
+      } finally {
+        setIsSharing(false);
+      }
+    }
+
+    // 2. Fallback to copying direct link to clipboard
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        const input = document.createElement('input');
+        input.value = shareUrl;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+      }
       setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2000);
-    });
+      setShareFeedback('Link copied to clipboard!');
+      setTimeout(() => {
+        setCopiedLink(false);
+        setShareFeedback(null);
+      }, 2500);
+    } catch (e) {
+      console.error('Failed to copy share link:', e);
+      setShareFeedback('Could not copy link');
+      setTimeout(() => setShareFeedback(null), 2000);
+    }
+  };
+
+  const handleCopyShareLink = handleShare;
+
+  const handleSetAsPhoneWallpaper = async () => {
+    if (!wallpaper) return;
+    setIsSettingPhone(true);
+    setPhoneActionFeedback('Preparing for Phone...');
+
+    const targetUrl = wallpaper.imageUrl || wallpaper.thumbnail || wallpaper.url;
+
+    // Check if Web Share API with files is supported (native Android/iOS sheet with "Use as Wallpaper")
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        let sharedFile = false;
+        if (targetUrl) {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 3500);
+          const response = await fetch(targetUrl, { signal: controller.signal, cache: 'force-cache' });
+          clearTimeout(timer);
+
+          if (response.ok) {
+            const blob = await response.blob();
+            const ext = blob.type.includes('png') ? 'png' : 'jpg';
+            const file = new File([blob], `wallpaper-${wallpaper.id}.${ext}`, {
+              type: blob.type || 'image/jpeg',
+            });
+
+            if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
+              setPhoneActionFeedback('Select "Use as Wallpaper" in menu');
+              await navigator.share({
+                title: wallpaper.title || '4K Phone Wallpaper',
+                text: 'Set this 4K image as your Phone Wallpaper',
+                files: [file],
+              });
+              sharedFile = true;
+              setPhoneActionFeedback('Selected! Set as wallpaper.');
+              setTimeout(() => setPhoneActionFeedback(null), 3500);
+              return;
+            }
+          }
+        }
+
+        if (!sharedFile) {
+          await navigator.share({
+            title: wallpaper.title || '4K Phone Wallpaper',
+            text: 'Save and Set as Wallpaper',
+            url: window.location.href,
+          });
+          setPhoneActionFeedback('Share sheet opened!');
+          setTimeout(() => setPhoneActionFeedback(null), 3000);
+          return;
+        }
+      } catch (err: any) {
+        if (err?.name === 'AbortError') {
+          setPhoneActionFeedback(null);
+          return;
+        }
+      } finally {
+        setIsSettingPhone(false);
+      }
+    }
+
+    // Direct mobile download fallback with clear guidance
+    try {
+      setPhoneActionFeedback('Downloading Mobile 9:16 HD...');
+      await downloadWallpaperDirectly(wallpaper, 'mobile', (status) => setPhoneActionFeedback(status));
+      setPhoneActionFeedback('Saved! Open Photos -> "Set as Wallpaper"');
+      setTimeout(() => setPhoneActionFeedback(null), 4500);
+    } catch {
+      setPhoneActionFeedback('Download failed, please retry.');
+      setTimeout(() => setPhoneActionFeedback(null), 3000);
+    } finally {
+      setIsSettingPhone(false);
+    }
+  };
+
+  const handleDownloadWindowsWallpaperBat = () => {
+    if (!wallpaper) return;
+    const imgUrl = wallpaper.fullUrl || wallpaper.url || wallpaper.imageUrl;
+    const sanitizedTitle = (wallpaper.title || 'wallpaper').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 30);
+
+    // Auto-setter Windows Batch script using PowerShell Win32 SystemParametersInfo
+    const batContent = `@echo off
+chcp 65001 >nul
+title PixelDrop - Setting Desktop Wallpaper
+cls
+echo ========================================================
+echo   PixelDrop 4K Wallpaper Auto-Setter
+echo ========================================================
+echo.
+echo [1/2] Downloading uncompressed 4K wallpaper...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ProgressPreference = 'SilentlyContinue'; $dest = [System.IO.Path]::Combine($env:TEMP, 'pixeldrop_${sanitizedTitle}.jpg'); Invoke-WebRequest -Uri '${imgUrl}' -OutFile $dest; $code = @'
+using System;
+using System.Runtime.InteropServices;
+public class WinWallpaper {
+    [DllImport(\\"user32.dll\\", CharSet = CharSet.Auto)]
+    public static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
+}
+'@; Add-Type -TypeDefinition $code; [WinWallpaper]::SystemParametersInfo(0x0014, 0, $dest, 0x01 | 0x02); Write-Host '[2/2] Wallpaper applied successfully!';"
+echo.
+echo ========================================================
+echo   Success! Your Windows desktop wallpaper has been updated.
+echo ========================================================
+timeout /t 3 >nul
+exit
+`;
+
+    const blob = new Blob([batContent], { type: 'application/bat;charset=utf-8' });
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = `Set-Desktop-Wallpaper-${sanitizedTitle}.bat`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(blobUrl);
+
+    setDesktopActionFeedback('Script downloaded! Double-click to set desktop.');
+    setTimeout(() => setDesktopActionFeedback(null), 5000);
   };
 
   const handleSelectRelated = (relatedWp: Wallpaper) => {
@@ -453,14 +681,34 @@ export const WallpaperModal: React.FC<WallpaperModalProps> = ({
               <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
             </button>
 
-            {/* Share Button */}
-            <button
-              onClick={handleCopyShareLink}
-              className="p-2 rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 transition-colors cursor-pointer"
-              title="Copy share link"
-            >
-              {copiedLink ? <Check className="w-4 h-4 text-emerald-500" /> : <Share2 className="w-4 h-4" />}
-            </button>
+            {/* Share Button (Web Share API on mobile / clipboard fallback) */}
+            <div className="relative">
+              <button
+                id="btn-modal-share"
+                onClick={handleShare}
+                disabled={isSharing}
+                className={`p-2 rounded-lg transition-colors cursor-pointer border ${
+                  copiedLink || shareFeedback
+                    ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30'
+                    : 'bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 border-transparent'
+                }`}
+                title={hasWebShare ? 'Share wallpaper (Use as Wallpaper, Save, AirDrop)' : 'Copy wallpaper link'}
+                aria-label={hasWebShare ? 'Share wallpaper' : 'Copy wallpaper link'}
+              >
+                {isSharing ? (
+                  <span className="w-4 h-4 flex items-center justify-center animate-spin text-xs">◷</span>
+                ) : copiedLink || (shareFeedback && shareFeedback.includes('Shared')) ? (
+                  <Check className="w-4 h-4 text-emerald-500" />
+                ) : (
+                  <Share2 className="w-4 h-4" />
+                )}
+              </button>
+              {shareFeedback && (
+                <div className="absolute right-0 top-full mt-1.5 px-2.5 py-1 bg-zinc-900 text-white text-[11px] font-medium rounded-lg shadow-lg whitespace-nowrap z-50 pointer-events-none animate-in fade-in duration-150">
+                  {shareFeedback}
+                </div>
+              )}
+            </div>
 
             {/* Slideshow button */}
             <button
@@ -582,6 +830,99 @@ export const WallpaperModal: React.FC<WallpaperModalProps> = ({
 
             <div className="flex items-center gap-2">
               <span className="text-xs text-zinc-500">{licenseName}</span>
+            </div>
+          </div>
+
+          {/* 1-Click Set as Wallpaper Hub (Phone & Desktop) */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+                1-Click Set as Wallpaper
+              </span>
+              {(phoneActionFeedback || desktopActionFeedback) && (
+                <span className="text-xs font-mono text-emerald-500 animate-pulse">
+                  {phoneActionFeedback || desktopActionFeedback}
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Phone Wallpaper Card */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-zinc-50 dark:via-[#161822] to-teal-500/5 border border-emerald-500/25 flex flex-col justify-between gap-3 shadow-xs">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <Smartphone className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-sm text-zinc-900 dark:text-white">Set as Phone Wallpaper</h4>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        iOS & Android
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
+                      Opens native system sheet: tap <span className="font-semibold text-emerald-600 dark:text-emerald-400">"Use as Wallpaper"</span> (استخدام كخلفية) on iPhone or Android.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  id="btn-set-as-phone-wallpaper"
+                  onClick={handleSetAsPhoneWallpaper}
+                  disabled={isSettingPhone}
+                  className="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm hover:shadow"
+                >
+                  {isSettingPhone ? (
+                    <span className="animate-spin text-white">◷</span>
+                  ) : (
+                    <Smartphone className="w-4 h-4" />
+                  )}
+                  <span>
+                    {isSettingPhone ? 'Preparing Image...' : '📱 Set as Phone Wallpaper'}
+                  </span>
+                </button>
+              </div>
+
+              {/* Desktop / PC Wallpaper Card */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-500/10 via-zinc-50 dark:via-[#161822] to-indigo-500/5 border border-blue-500/25 flex flex-col justify-between gap-3 shadow-xs">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                    <Laptop className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-sm text-zinc-900 dark:text-white">Set as Desktop Wallpaper</h4>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                        PC / Windows / Mac
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
+                      1-Click Windows Auto-Setter script (.bat) or instant right-click background shortcut.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    id="btn-set-desktop-windows-script"
+                    onClick={handleDownloadWindowsWallpaperBat}
+                    className="py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm hover:shadow"
+                    title="Downloads 1-click Windows script that sets desktop instantly"
+                  >
+                    <Terminal className="w-3.5 h-3.5" />
+                    <span>⚡ 1-Click Windows</span>
+                  </button>
+                  <button
+                    id="btn-set-desktop-guide"
+                    onClick={() => setShowDesktopModal(true)}
+                    className="py-2.5 px-3 rounded-xl bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer border border-zinc-300 dark:border-zinc-700"
+                  >
+                    <HelpCircle className="w-3.5 h-3.5 text-zinc-500" />
+                    <span>How it works</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -725,6 +1066,94 @@ export const WallpaperModal: React.FC<WallpaperModalProps> = ({
             </p>
           </div>
         </div>
+
+        {/* Desktop Setup Helper Modal */}
+        {showDesktopModal && (
+          <div
+            className="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150"
+            onClick={() => setShowDesktopModal(false)}
+          >
+            <div
+              className="w-full max-w-lg bg-white dark:bg-[#151722] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 sm:p-6 shadow-2xl space-y-4 text-zinc-900 dark:text-zinc-100"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between pb-2 border-b border-zinc-200 dark:border-zinc-800">
+                <div className="flex items-center gap-2">
+                  <Laptop className="w-5 h-5 text-blue-500" />
+                  <h3 className="font-bold text-base">Set as Desktop Wallpaper</h3>
+                </div>
+                <button
+                  onClick={() => setShowDesktopModal(false)}
+                  className="p-1 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3.5 text-xs">
+                {/* Method 1: 1-Click Windows Auto-Set */}
+                <div className="p-3.5 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
+                      <Terminal className="w-4 h-4" />
+                      Option 1: Windows 1-Click Auto-Setter (.bat)
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-600 dark:text-blue-400">
+                      Recommended for PC
+                    </span>
+                  </div>
+                  <p className="text-zinc-600 dark:text-zinc-300 leading-relaxed text-[11px]">
+                    Downloads a lightweight script that automatically fetches this raw 4K wallpaper and applies it immediately to your Windows desktop using the native Win32 API.
+                  </p>
+                  <button
+                    onClick={() => {
+                      handleDownloadWindowsWallpaperBat();
+                      setShowDesktopModal(false);
+                    }}
+                    className="w-full py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download & Apply via 1-Click Script</span>
+                  </button>
+                </div>
+
+                {/* Method 2: Browser Right-Click */}
+                <div className="p-3.5 rounded-xl bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/60 space-y-1.5">
+                  <div className="font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
+                    <span>Option 2: Browser Right-Click (Instant)</span>
+                  </div>
+                  <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed text-[11px]">
+                    In Chrome, Microsoft Edge, or Firefox: Simply <strong>right-click</strong> the wallpaper image preview above, and select <span className="text-emerald-600 dark:text-emerald-400 font-semibold">"Set as desktop background"</span> (Définir comme arrière-plan du bureau / تعيين كخلفية لسطح المكتب).
+                  </p>
+                </div>
+
+                {/* Method 3: Mac / Apple */}
+                <div className="p-3.5 rounded-xl bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/60 space-y-1.5">
+                  <div className="font-bold text-zinc-900 dark:text-white">
+                    Option 3: macOS (Apple Mac)
+                  </div>
+                  <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed text-[11px]">
+                    Click <strong>"Original 4K"</strong> download ➔ open your Downloads folder ➔ right-click the image file ➔ click <strong>"Set Desktop Picture"</strong>.
+                  </p>
+                </div>
+
+                {/* Browser security info */}
+                <div className="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-[11px] text-amber-800 dark:text-amber-300">
+                  🔒 <strong>Browser Security Note:</strong> Standard web browsers do not allow websites to silently alter OS system files or desktop wallpapers without user interaction for safety.
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-end">
+                <button
+                  onClick={() => setShowDesktopModal(false)}
+                  className="px-4 py-2 rounded-xl bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 font-semibold text-xs transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
